@@ -1,0 +1,121 @@
+name: Deploy Mobile App
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+      platforms:
+        description: 'Platforms to deploy'
+        required: true
+        default: 'ios,android'
+        type: string
+
+jobs:
+  deploy:
+    name: Deploy to ${{ github.event.inputs.environment || 'production' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Setup Expo CLI
+        run: npm install -g @expo/cli @expo/eas-cli
+
+      - name: Install dependencies
+        working-directory: mobile
+        run: npm ci
+
+      - name: Login to Expo
+        run: eas login --access-token ${{ secrets.EXPO_TOKEN }}
+
+      - name: Create .env file
+        working-directory: mobile
+        run: |
+          cat > .env << EOF
+          API_BASE_URL=${{ secrets.API_BASE_URL }}
+          SOLANA_NETWORK=${{ secrets.SOLANA_NETWORK }}
+          SOLANA_RPC_URL=${{ secrets.SOLANA_RPC_URL }}
+          APP_NAME=EmpowerGRID
+          APP_VERSION=${{ github.ref_name }}
+          EXPO_TOKEN=${{ secrets.EXPO_TOKEN }}
+          EOF
+
+      - name: Build iOS app
+        if: contains(github.event.inputs.platforms || 'ios,android', 'ios')
+        working-directory: mobile
+        run: eas build --platform ios --profile production --non-interactive
+
+      - name: Build Android app
+        if: contains(github.event.inputs.platforms || 'ios,android', 'android')
+        working-directory: mobile
+        run: eas build --platform android --profile production --non-interactive
+
+      - name: Submit iOS to App Store
+        if: contains(github.event.inputs.platforms || 'ios,android', 'ios') && github.event.inputs.environment == 'production'
+        working-directory: mobile
+        run: eas submit --platform ios --profile production --non-interactive
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+
+      - name: Submit Android to Google Play
+        if: contains(github.event.inputs.platforms || 'ios,android', 'android') && github.event.inputs.environment == 'production'
+        working-directory: mobile
+        run: eas submit --platform android --profile production --non-interactive
+        env:
+          GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
+
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            ## EmpowerGRID Mobile v${{ github.ref_name }}
+
+            ### What's New
+            - Enhanced project discovery and funding
+            - Real-time portfolio tracking
+            - Comprehensive governance participation
+            - Advanced wallet management
+            - Push notifications for important updates
+
+            ### Installation
+            Download from the [App Store](https://apps.apple.com/app/empowergrid) or [Google Play Store](https://play.google.com/store/apps/details?id=com.empowergrid.mobile).
+
+            ---
+            *Built with ❤️ for sustainable energy and decentralized governance*
+          draft: false
+          prerelease: false
+
+      - name: Notify deployment status
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: 'Mobile app deployment ${{ job.status }}'
+          channel: '#deployments'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: env.SLACK_WEBHOOK_URL != null

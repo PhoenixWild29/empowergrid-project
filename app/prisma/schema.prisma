@@ -1,0 +1,221 @@
+// Prisma schema for EmpowerGRID database
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  walletAddress String   @unique
+  username      String   @unique
+  email         String?  @unique
+  role          UserRole @default(FUNDER)
+  reputation    Int      @default(0)
+  verified      Boolean  @default(false)
+  avatar        String?
+  bio           String?
+  website       String?
+  socialLinks   Json?    // Store social media links as JSON
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  projectsCreated    Project[] @relation("ProjectCreator")
+  projectsFunded     Funding[] @relation("ProjectFunder")
+  milestonesReleased Milestone[] @relation("MilestoneReleaser")
+  notifications      Notification[]
+  comments           Comment[]
+  userStats          UserStats?
+
+  @@map("users")
+}
+
+model UserStats {
+  id                String @id @default(cuid())
+  userId            String @unique
+  projectsCreated   Int    @default(0)
+  projectsFunded    Int    @default(0)
+  totalFunded       Float  @default(0) // In SOL
+  successfulProjects Int   @default(0)
+  totalEarnings     Float  @default(0) // In SOL
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_stats")
+}
+
+model Project {
+  id              String     @id @default(cuid())
+  title           String
+  description     String
+  category        String
+  tags            String[]   // Array of tags
+  status          ProjectStatus @default(DRAFT)
+
+  // Creator info
+  creatorId       String
+  creator         User       @relation("ProjectCreator", fields: [creatorId], references: [id])
+
+  // Project details
+  targetAmount    Float      // Target amount in SOL
+  currentAmount   Float      @default(0) // Current funded amount in SOL
+  milestoneCount  Int        @default(1)
+  duration        Int        // Duration in days
+
+  // Blockchain info
+  programId       String     // Solana program ID
+  projectPDA      String     @unique // Project PDA address
+
+  // Media
+  images          String[]   // Array of image URLs
+  videoUrl        String?
+
+  // Timestamps
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  fundedAt        DateTime?
+  completedAt     DateTime?
+
+  // Relations
+  milestones      Milestone[]
+  fundings        Funding[]
+  updates         ProjectUpdate[]
+  comments        Comment[]
+
+  @@map("projects")
+}
+
+model Milestone {
+  id              String   @id @default(cuid())
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  title           String
+  description     String
+  order           Int      // Milestone order (1, 2, 3, etc.)
+  targetAmount    Float    // Amount to release this milestone in SOL
+
+  status          MilestoneStatus @default(PENDING)
+  releasedById    String?
+  releasedBy      User?    @relation("MilestoneReleaser", fields: [releasedById], references: [id])
+  releasedAt      DateTime?
+
+  // Metrics data (stored off-chain)
+  metricsData     Json?    // Store metrics as JSON
+  submittedAt     DateTime?
+  approvedAt      DateTime?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("milestones")
+}
+
+model Funding {
+  id            String   @id @default(cuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  funderId      String
+  funder        User     @relation("ProjectFunder", fields: [funderId], references: [id])
+
+  amount        Float    // Amount funded in SOL
+  transactionId String   @unique // Solana transaction ID
+
+  fundedAt      DateTime @default(now())
+
+  @@map("fundings")
+}
+
+model ProjectUpdate {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  title       String
+  content     String
+  images      String[] // Array of image URLs
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("project_updates")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+
+  content   String
+  parentId  String?  // For nested comments
+  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id])
+
+  replies   Comment[] @relation("CommentReplies")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("comments")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type      NotificationType
+  title     String
+  message   String
+  read      Boolean  @default(false)
+
+  // Related entities
+  projectId String?
+  milestoneId String?
+
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+// Enums
+enum UserRole {
+  GUEST
+  FUNDER
+  CREATOR
+  ADMIN
+}
+
+enum ProjectStatus {
+  DRAFT
+  ACTIVE
+  FUNDED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum MilestoneStatus {
+  PENDING
+  SUBMITTED
+  APPROVED
+  RELEASED
+  REJECTED
+}
+
+enum NotificationType {
+  PROJECT_FUNDED
+  MILESTONE_READY
+  PROJECT_COMPLETED
+  NEW_COMMENT
+  PROJECT_UPDATE
+}

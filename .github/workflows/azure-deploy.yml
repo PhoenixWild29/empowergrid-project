@@ -1,0 +1,98 @@
+name: Deploy to Azure
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+        - staging
+        - production
+
+env:
+  AZURE_WEBAPP_NAME: empowergrid-${{ github.event.inputs.environment || 'production' }}
+  AZURE_RESOURCE_GROUP: empowergrid-rg-${{ github.event.inputs.environment || 'production' }}
+  AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Login to Azure
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: app/package-lock.json
+
+    - name: Install dependencies
+      working-directory: ./app
+      run: npm ci
+
+    - name: Setup Prisma
+      working-directory: ./app
+      run: npm run prisma:generate
+
+    - name: Build application
+      working-directory: ./app
+      run: npm run build
+      env:
+        NEXT_PUBLIC_APP_ENV: ${{ github.event.inputs.environment || 'production' }}
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    - name: Run database migrations
+      working-directory: ./app
+      run: npm run prisma:db:push
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        slot-name: ${{ github.event.inputs.environment == 'staging' && 'staging' || 'production' }}
+        package: ./app
+
+    - name: Azure logout
+      run: |
+        az logout
+
+  health-check:
+    needs: build-and-deploy
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+
+    steps:
+    - name: Health check
+      run: |
+        echo "Performing health check on deployed application"
+        # Add health check logic here
+        # Example: curl to health endpoint, check response status
+
+  rollback:
+    needs: [build-and-deploy, health-check]
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    if: failure() && github.event.inputs.environment != 'staging'
+
+    steps:
+    - name: Rollback deployment
+      run: |
+        echo "Deployment failed - initiating rollback"
+        # Add rollback logic here
+        # Example: swap slots, redeploy previous version

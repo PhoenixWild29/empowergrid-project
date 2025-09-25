@@ -1,0 +1,8 @@
+{
+  "rules": [
+    {
+      "pathPattern": "/fund/*",
+      "apiPath": "/api/actions/fund/*"
+    }
+  ]
+}
