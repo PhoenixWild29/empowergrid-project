@@ -1,7 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { analyticsService } from '../../../lib/services/analyticsService';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -13,15 +16,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     switch (type) {
       case 'projects':
         if (action === 'export') {
-          const format = req.query.format as 'json' | 'csv' || 'json';
-          const data = await analyticsService.exportAnalytics('projects', format);
+          const format = (req.query.format as 'json' | 'csv') || 'json';
+          const data = await analyticsService.exportAnalytics(
+            'projects',
+            format
+          );
 
           if (format === 'csv') {
             res.setHeader('Content-Type', 'text/csv');
-            res.setHeader('Content-Disposition', 'attachment; filename="projects-analytics.csv"');
+            res.setHeader(
+              'Content-Disposition',
+              'attachment; filename="projects-analytics.csv"'
+            );
           } else {
             res.setHeader('Content-Type', 'application/json');
-            res.setHeader('Content-Disposition', 'attachment; filename="projects-analytics.json"');
+            res.setHeader(
+              'Content-Disposition',
+              'attachment; filename="projects-analytics.json"'
+            );
           }
 
           return res.status(200).send(data);
@@ -32,15 +44,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       case 'users':
         if (action === 'export') {
-          const format = req.query.format as 'json' | 'csv' || 'json';
+          const format = (req.query.format as 'json' | 'csv') || 'json';
           const data = await analyticsService.exportAnalytics('users', format);
 
           if (format === 'csv') {
             res.setHeader('Content-Type', 'text/csv');
-            res.setHeader('Content-Disposition', 'attachment; filename="users-analytics.csv"');
+            res.setHeader(
+              'Content-Disposition',
+              'attachment; filename="users-analytics.csv"'
+            );
           } else {
             res.setHeader('Content-Type', 'application/json');
-            res.setHeader('Content-Disposition', 'attachment; filename="users-analytics.json"');
+            res.setHeader(
+              'Content-Disposition',
+              'attachment; filename="users-analytics.json"'
+            );
           }
 
           return res.status(200).send(data);
@@ -51,15 +69,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       case 'platform':
         if (action === 'export') {
-          const format = req.query.format as 'json' | 'csv' || 'json';
-          const data = await analyticsService.exportAnalytics('platform', format);
+          const format = (req.query.format as 'json' | 'csv') || 'json';
+          const data = await analyticsService.exportAnalytics(
+            'platform',
+            format
+          );
 
           if (format === 'csv') {
             res.setHeader('Content-Type', 'text/csv');
-            res.setHeader('Content-Disposition', 'attachment; filename="platform-analytics.csv"');
+            res.setHeader(
+              'Content-Disposition',
+              'attachment; filename="platform-analytics.csv"'
+            );
           } else {
             res.setHeader('Content-Type', 'application/json');
-            res.setHeader('Content-Disposition', 'attachment; filename="platform-analytics.json"');
+            res.setHeader(
+              'Content-Disposition',
+              'attachment; filename="platform-analytics.json"'
+            );
           }
 
           return res.status(200).send(data);
@@ -70,15 +97,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       case 'system':
         if (action === 'export') {
-          const format = req.query.format as 'json' | 'csv' || 'json';
+          const format = (req.query.format as 'json' | 'csv') || 'json';
           const data = await analyticsService.exportAnalytics('system', format);
 
           if (format === 'csv') {
             res.setHeader('Content-Type', 'text/csv');
-            res.setHeader('Content-Disposition', 'attachment; filename="system-analytics.csv"');
+            res.setHeader(
+              'Content-Disposition',
+              'attachment; filename="system-analytics.csv"'
+            );
           } else {
             res.setHeader('Content-Type', 'application/json');
-            res.setHeader('Content-Disposition', 'attachment; filename="system-analytics.json"');
+            res.setHeader(
+              'Content-Disposition',
+              'attachment; filename="system-analytics.json"'
+            );
           }
 
           return res.status(200).send(data);
@@ -89,12 +122,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       case 'dashboard':
         // Return all analytics data for the dashboard
-        const [projectData, userData, platformData, systemData] = await Promise.all([
-          analyticsService.getProjectAnalytics(),
-          analyticsService.getUserAnalytics(),
-          analyticsService.getPlatformAnalytics(),
-          analyticsService.getSystemAnalytics(),
-        ]);
+        const [projectData, userData, platformData, systemData] =
+          await Promise.all([
+            analyticsService.getProjectAnalytics(),
+            analyticsService.getUserAnalytics(),
+            analyticsService.getPlatformAnalytics(),
+            analyticsService.getSystemAnalytics(),
+          ]);
 
         return res.status(200).json({
           projects: projectData,

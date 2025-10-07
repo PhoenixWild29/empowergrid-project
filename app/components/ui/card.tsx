@@ -7,7 +7,9 @@ interface CardProps {
 
 export const Card: React.FC<CardProps> = ({ children, className = '' }) => {
   return (
-    <div className={`bg-white rounded-lg border border-gray-200 shadow-sm ${className}`}>
+    <div
+      className={`bg-white rounded-lg border border-gray-200 shadow-sm ${className}`}
+    >
       {children}
     </div>
   );
@@ -18,12 +20,11 @@ interface CardHeaderProps {
   className?: string;
 }
 
-export const CardHeader: React.FC<CardHeaderProps> = ({ children, className = '' }) => {
-  return (
-    <div className={`p-6 pb-0 ${className}`}>
-      {children}
-    </div>
-  );
+export const CardHeader: React.FC<CardHeaderProps> = ({
+  children,
+  className = '',
+}) => {
+  return <div className={`p-6 pb-0 ${className}`}>{children}</div>;
 };
 
 interface CardTitleProps {
@@ -31,7 +32,10 @@ interface CardTitleProps {
   className?: string;
 }
 
-export const CardTitle: React.FC<CardTitleProps> = ({ children, className = '' }) => {
+export const CardTitle: React.FC<CardTitleProps> = ({
+  children,
+  className = '',
+}) => {
   return (
     <h3 className={`text-lg font-semibold text-gray-900 ${className}`}>
       {children}
@@ -44,11 +48,12 @@ interface CardDescriptionProps {
   className?: string;
 }
 
-export const CardDescription: React.FC<CardDescriptionProps> = ({ children, className = '' }) => {
+export const CardDescription: React.FC<CardDescriptionProps> = ({
+  children,
+  className = '',
+}) => {
   return (
-    <p className={`text-sm text-gray-600 mt-1 ${className}`}>
-      {children}
-    </p>
+    <p className={`text-sm text-gray-600 mt-1 ${className}`}>{children}</p>
   );
 };
 
@@ -57,10 +62,9 @@ interface CardContentProps {
   className?: string;
 }
 
-export const CardContent: React.FC<CardContentProps> = ({ children, className = '' }) => {
-  return (
-    <div className={`p-6 ${className}`}>
-      {children}
-    </div>
-  );
+export const CardContent: React.FC<CardContentProps> = ({
+  children,
+  className = '',
+}) => {
+  return <div className={`p-6 ${className}`}>{children}</div>;
 };

@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  ReactNode,
+} from 'react';
 import { PublicKey } from '@solana/web3.js';
 import {
   AuthContextType,
@@ -16,7 +22,10 @@ import { databaseService } from '../lib/services/databaseService';
 // Auth reducer actions
 type AuthAction =
   | { type: 'AUTH_START' }
-  | { type: 'AUTH_SUCCESS'; payload: { user: UserProfile; walletAddress: PublicKey } }
+  | {
+      type: 'AUTH_SUCCESS';
+      payload: { user: UserProfile; walletAddress: PublicKey };
+    }
   | { type: 'AUTH_ERROR'; payload: string }
   | { type: 'LOGOUT' }
   | { type: 'UPDATE_PROFILE'; payload: UserProfile }
@@ -201,7 +210,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         payload: { user: loginResponse.user, walletAddress },
       });
     } catch (error) {
-      dispatch({ type: 'AUTH_ERROR', payload: error instanceof Error ? error.message : 'Login failed' });
+      dispatch({
+        type: 'AUTH_ERROR',
+        payload: error instanceof Error ? error.message : 'Login failed',
+      });
       throw error;
     }
   };
@@ -216,7 +228,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const updateProfile = async (updates: Partial<UserProfile>): Promise<void> => {
+  const updateProfile = async (
+    updates: Partial<UserProfile>
+  ): Promise<void> => {
     if (!state.user) throw new Error('No user logged in');
 
     try {
@@ -273,9 +287,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
 }
 
@@ -292,7 +304,9 @@ export function useAuth(): AuthContextType {
 async function mockLogin(walletAddress: PublicKey): Promise<LoginResponse> {
   try {
     // Ensure user exists in database
-    const dbUser = await databaseService.ensureUserExists(walletAddress.toString());
+    const dbUser = await databaseService.ensureUserExists(
+      walletAddress.toString()
+    );
 
     // Get complete user profile with stats
     const userProfile = await databaseService.getUserProfile(dbUser.id);
@@ -312,7 +326,10 @@ async function mockLogin(walletAddress: PublicKey): Promise<LoginResponse> {
   }
 }
 
-async function mockUpdateProfile(userId: string, updates: Partial<UserProfile>): Promise<UserProfile> {
+async function mockUpdateProfile(
+  userId: string,
+  updates: Partial<UserProfile>
+): Promise<UserProfile> {
   try {
     // Update user profile in database
     await databaseService.updateUserProfile(userId, updates);

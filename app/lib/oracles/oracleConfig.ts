@@ -11,7 +11,9 @@ export const oracleConfig = {
   // Oracle providers configuration
   providers: {
     'switchboard-primary': {
-      endpoint: process.env.SWITCHBOARD_ENDPOINT || 'http://localhost:3000/api/meter/latest',
+      endpoint:
+        process.env.SWITCHBOARD_ENDPOINT ||
+        'http://localhost:3000/api/meter/latest',
       weight: 1.0,
       timeout: 5000,
       retryAttempts: 3,
@@ -19,7 +21,9 @@ export const oracleConfig = {
       initialReputation: 95,
     },
     'switchboard-secondary': {
-      endpoint: process.env.SWITCHBOARD_BACKUP_ENDPOINT || 'http://localhost:3000/api/meter/mock-oracle',
+      endpoint:
+        process.env.SWITCHBOARD_BACKUP_ENDPOINT ||
+        'http://localhost:3000/api/meter/mock-oracle',
       weight: 0.9,
       timeout: 5000,
       retryAttempts: 3,
@@ -27,7 +31,9 @@ export const oracleConfig = {
       initialReputation: 90,
     },
     'external-oracle-1': {
-      endpoint: process.env.EXTERNAL_ORACLE_1_ENDPOINT || 'http://localhost:3000/api/meter/external-oracle',
+      endpoint:
+        process.env.EXTERNAL_ORACLE_1_ENDPOINT ||
+        'http://localhost:3000/api/meter/external-oracle',
       weight: 0.8,
       timeout: 8000,
       retryAttempts: 2,
@@ -35,7 +41,9 @@ export const oracleConfig = {
       initialReputation: 85,
     },
     'iot-direct': {
-      endpoint: process.env.IOT_DIRECT_ENDPOINT || 'http://iot-gateway.local:8080/metrics',
+      endpoint:
+        process.env.IOT_DIRECT_ENDPOINT ||
+        'http://iot-gateway.local:8080/metrics',
       weight: 0.7,
       timeout: 3000,
       retryAttempts: 5,

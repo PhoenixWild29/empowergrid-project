@@ -3,18 +3,81 @@ const nextConfig = {
   // Enable standalone output for Docker deployment
   output: 'standalone',
 
+  // Performance optimizations
+  poweredByHeader: false, // Remove X-Powered-By header
+  reactStrictMode: true,
+  swcMinify: true,
+  compress: true,
+
+  // Bundle analysis
+  webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
+    // Exclude server-only modules from client bundle
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        os: false,
+      };
+
+      // Make Winston server-only
+      config.externals = config.externals || [];
+      config.externals.push({
+        winston: 'winston',
+      });
+    }
+
+    // Bundle analyzer
+    if (!dev && process.env.ANALYZE === 'true') {
+      const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+      config.plugins.push(
+        new BundleAnalyzerPlugin({
+          analyzerMode: 'static',
+          reportFilename: './analyze/client.html',
+          openAnalyzer: false,
+        })
+      );
+    }
+
+    // Performance monitoring
+    if (!dev && !isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+      };
+    }
+
+    // Add performance hints
+    config.performance = {
+      hints: dev ? false : 'warning',
+      maxEntrypointSize: 512000, // 512KB
+      maxAssetSize: 512000, // 512KB
+    };
+
+    return config;
+  },
+
   // Environment variables
   env: {
     NEXT_PUBLIC_APP_ENV: process.env.NEXT_PUBLIC_APP_ENV || 'development',
   },
 
-  // Image optimization
+  // Advanced image optimization
   images: {
-    domains: ['localhost'],
+    domains: ['localhost', 'empowergrid.com', 'cdn.jsdelivr.net'],
     unoptimized: process.env.NODE_ENV === 'development',
+    formats: ['image/webp', 'image/avif'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
 
-  // Headers for security and performance
+  // Experimental features for performance
+  experimental: {
+    optimizeCss: true,
+    scrollRestoration: true,
+    optimizePackageImports: ['lucide-react', '@solana/web3.js'],
+  },
+
+  // Headers for security, performance, and caching
   async headers() {
     return [
       {
@@ -30,10 +93,20 @@ const nextConfig = {
           },
           {
             key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), payment=()',
+          },
+          // Performance headers
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on',
           },
         ],
       },
+      // API caching headers
       {
         source: '/api/(.*)',
         headers: [
@@ -43,27 +116,28 @@ const nextConfig = {
           },
         ],
       },
+      // Static asset caching
+      {
+        source: '/_next/static/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      // Image caching
+      {
+        source: '/api/images/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800',
+          },
+        ],
+      },
     ];
   },
-
-  // Webpack configuration for monitoring
-  webpack: (config, { dev, isServer }) => {
-    // Add performance monitoring in production
-    if (!dev && !isServer) {
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        // Add any aliases for monitoring
-      };
-    }
-
-    return config;
-  },
-
-  // Build optimization
-  swcMinify: true,
-
-  // Compression
-  compress: true,
 };
 
 module.exports = nextConfig;

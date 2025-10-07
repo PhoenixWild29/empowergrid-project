@@ -14,7 +14,9 @@ interface MetricsOverviewProps {
   refreshInterval?: number; // in milliseconds
 }
 
-export default function MetricsOverview({ refreshInterval = 30000 }: MetricsOverviewProps) {
+export default function MetricsOverview({
+  refreshInterval = 30000,
+}: MetricsOverviewProps) {
   const [metrics, setMetrics] = useState<PlatformMetrics>({
     totalProjects: 0,
     activeProjects: 0,
@@ -80,7 +82,7 @@ export default function MetricsOverview({ refreshInterval = 30000 }: MetricsOver
     value,
     subtitle,
     icon,
-    trend
+    trend,
   }: {
     title: string;
     value: string;
@@ -88,21 +90,21 @@ export default function MetricsOverview({ refreshInterval = 30000 }: MetricsOver
     icon: string;
     trend?: { value: number; isPositive: boolean };
   }) => (
-    <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-      <div className="flex items-center justify-between">
+    <div className='bg-white rounded-lg shadow-sm p-6 border border-gray-200'>
+      <div className='flex items-center justify-between'>
         <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-          {subtitle && (
-            <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
-          )}
+          <p className='text-sm font-medium text-gray-600'>{title}</p>
+          <p className='text-2xl font-bold text-gray-900 mt-1'>{value}</p>
+          {subtitle && <p className='text-sm text-gray-500 mt-1'>{subtitle}</p>}
         </div>
-        <div className="text-3xl">{icon}</div>
+        <div className='text-3xl'>{icon}</div>
       </div>
       {trend && (
-        <div className={`flex items-center mt-4 text-sm ${
-          trend.isPositive ? 'text-green-600' : 'text-red-600'
-        }`}>
+        <div
+          className={`flex items-center mt-4 text-sm ${
+            trend.isPositive ? 'text-green-600' : 'text-red-600'
+          }`}
+        >
           <span className={`mr-1 ${trend.isPositive ? '↑' : '↓'}`}>
             {trend.isPositive ? '↗' : '↘'}
           </span>
@@ -114,12 +116,15 @@ export default function MetricsOverview({ refreshInterval = 30000 }: MetricsOver
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-            <div className="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
-            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+          <div
+            key={i}
+            className='bg-white rounded-lg shadow-sm p-6 border border-gray-200 animate-pulse'
+          >
+            <div className='h-4 bg-gray-200 rounded w-3/4 mb-2'></div>
+            <div className='h-8 bg-gray-200 rounded w-1/2 mb-2'></div>
+            <div className='h-3 bg-gray-200 rounded w-1/2'></div>
           </div>
         ))}
       </div>
@@ -127,66 +132,73 @@ export default function MetricsOverview({ refreshInterval = 30000 }: MetricsOver
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Platform Overview</h2>
-        <div className="text-sm text-gray-500">
+    <div className='space-y-6'>
+      <div className='flex justify-between items-center'>
+        <h2 className='text-2xl font-bold text-gray-900'>Platform Overview</h2>
+        <div className='text-sm text-gray-500'>
           Last updated: {lastUpdated.toLocaleTimeString()}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
         <MetricCard
-          title="Total Projects"
+          title='Total Projects'
           value={formatNumber(metrics.totalProjects)}
           subtitle={`${metrics.activeProjects} active`}
-          icon="🏗️"
+          icon='🏗️'
           trend={{ value: 12, isPositive: true }}
         />
 
         <MetricCard
-          title="Total Funding"
+          title='Total Funding'
           value={formatCurrency(metrics.totalFunding)}
-          subtitle="Raised by projects"
-          icon="💰"
+          subtitle='Raised by projects'
+          icon='💰'
           trend={{ value: 8, isPositive: true }}
         />
 
         <MetricCard
-          title="Energy Generated"
+          title='Energy Generated'
           value={`${formatNumber(metrics.totalEnergyGenerated / 1000)}M kWh`}
-          subtitle="Clean energy produced"
-          icon="⚡"
+          subtitle='Clean energy produced'
+          icon='⚡'
           trend={{ value: 15, isPositive: true }}
         />
 
         <MetricCard
-          title="CO₂ Offset"
+          title='CO₂ Offset'
           value={`${formatNumber(metrics.totalCO2Offset)} tons`}
-          subtitle="Carbon emissions prevented"
-          icon="🌱"
+          subtitle='Carbon emissions prevented'
+          icon='🌱'
           trend={{ value: 22, isPositive: true }}
         />
       </div>
 
       {/* Milestone Progress */}
-      <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Milestone Progress</h3>
-        <div className="space-y-4">
-          <div className="flex justify-between text-sm">
+      <div className='bg-white rounded-lg shadow-sm p-6 border border-gray-200'>
+        <h3 className='text-lg font-semibold text-gray-900 mb-4'>
+          Milestone Progress
+        </h3>
+        <div className='space-y-4'>
+          <div className='flex justify-between text-sm'>
             <span>Overall Completion</span>
-            <span>{metrics.completedMilestones}/{metrics.totalMilestones} milestones</span>
+            <span>
+              {metrics.completedMilestones}/{metrics.totalMilestones} milestones
+            </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-3">
+          <div className='w-full bg-gray-200 rounded-full h-3'>
             <div
-              className="bg-blue-600 h-3 rounded-full transition-all duration-500"
+              className='bg-blue-600 h-3 rounded-full transition-all duration-500'
               style={{
-                width: `${metrics.totalMilestones > 0 ? (metrics.completedMilestones / metrics.totalMilestones) * 100 : 0}%`
+                width: `${metrics.totalMilestones > 0 ? (metrics.completedMilestones / metrics.totalMilestones) * 100 : 0}%`,
               }}
             />
           </div>
-          <div className="text-sm text-gray-600">
-            {Math.round((metrics.completedMilestones / metrics.totalMilestones) * 100)}% of all milestones completed
+          <div className='text-sm text-gray-600'>
+            {Math.round(
+              (metrics.completedMilestones / metrics.totalMilestones) * 100
+            )}
+            % of all milestones completed
           </div>
         </div>
       </div>

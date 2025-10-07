@@ -57,12 +57,13 @@ export const ERROR_CODES = {
   OPERATION_CANCELLED: 'OPERATION_CANCELLED',
 } as const;
 
-export type ErrorCode = typeof ERROR_CODES[keyof typeof ERROR_CODES];
+export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
 
 // Error messages
 export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   [ERROR_CODES.WALLET_NOT_CONNECTED]: 'Please connect your wallet to continue',
-  [ERROR_CODES.WALLET_CONNECTION_FAILED]: 'Failed to connect wallet. Please try again',
+  [ERROR_CODES.WALLET_CONNECTION_FAILED]:
+    'Failed to connect wallet. Please try again',
   [ERROR_CODES.WALLET_DISCONNECTED]: 'Wallet disconnected. Please reconnect',
 
   [ERROR_CODES.TRANSACTION_FAILED]: 'Transaction failed. Please try again',
@@ -74,7 +75,8 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   [ERROR_CODES.INVALID_AMOUNT]: 'Invalid amount specified',
 
   [ERROR_CODES.API_ERROR]: 'API request failed. Please try again',
-  [ERROR_CODES.NETWORK_ERROR]: 'Network connection error. Please check your connection',
+  [ERROR_CODES.NETWORK_ERROR]:
+    'Network connection error. Please check your connection',
   [ERROR_CODES.SERVER_ERROR]: 'Server error. Please try again later',
 
   [ERROR_CODES.PROGRAM_ERROR]: 'Smart contract error occurred',

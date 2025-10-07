@@ -26,23 +26,15 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-gray-600">
+      <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+        <CardTitle className='text-sm font-medium text-gray-600'>
           {title}
         </CardTitle>
-        <div className={`p-2 rounded-full ${colorClasses[color]}`}>
-          {icon}
-        </div>
+        <div className={`p-2 rounded-full ${colorClasses[color]}`}>{icon}</div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold text-gray-900">
-          {value}
-        </div>
-        {trend && (
-          <p className="text-xs text-gray-500 mt-1">
-            {trend}
-          </p>
-        )}
+        <div className='text-2xl font-bold text-gray-900'>{value}</div>
+        {trend && <p className='text-xs text-gray-500 mt-1'>{trend}</p>}
       </CardContent>
     </Card>
   );

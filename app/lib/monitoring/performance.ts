@@ -1,4 +1,10 @@
-import { logger, logPerformance, logDatabaseOperation } from '../logging/logger';
+import {
+  logger,
+  logPerformance,
+  logDatabaseOperation,
+} from '../logging/logger';
+
+// Performance monitoring system for EmpowerGRID
 
 // Performance monitoring utilities
 export class PerformanceMonitor {
@@ -67,8 +73,14 @@ export class PerformanceMonitor {
   }
 
   // Get all metrics
-  getAllMetrics(): Record<string, ReturnType<PerformanceMonitor['getMetricStats']>> {
-    const result: Record<string, ReturnType<PerformanceMonitor['getMetricStats']>> = {};
+  getAllMetrics(): Record<
+    string,
+    ReturnType<PerformanceMonitor['getMetricStats']>
+  > {
+    const result: Record<
+      string,
+      ReturnType<PerformanceMonitor['getMetricStats']>
+    > = {};
 
     for (const [name] of this.metrics) {
       result[name] = this.getMetricStats(name);
@@ -109,14 +121,20 @@ export class DatabasePerformanceMonitor {
       const duration = Date.now() - startTime;
 
       logDatabaseOperation(operation, table, duration, true);
-      PerformanceMonitor.getInstance().recordMetric(`db.${table}.${operation}`, duration);
+      PerformanceMonitor.getInstance().recordMetric(
+        `db.${table}.${operation}`,
+        duration
+      );
 
       return result;
     } catch (error) {
       const duration = Date.now() - startTime;
 
       logDatabaseOperation(operation, table, duration, false, error as Error);
-      PerformanceMonitor.getInstance().recordMetric(`db.${table}.${operation}.error`, duration);
+      PerformanceMonitor.getInstance().recordMetric(
+        `db.${table}.${operation}.error`,
+        duration
+      );
 
       throw error;
     }
@@ -148,13 +166,19 @@ export class ApiPerformanceMonitor {
       const result = await fn();
       const duration = Date.now() - startTime;
 
-      PerformanceMonitor.getInstance().recordMetric(`api.${method}.${path}`, duration);
+      PerformanceMonitor.getInstance().recordMetric(
+        `api.${method}.${path}`,
+        duration
+      );
 
       return result;
     } catch (error) {
       const duration = Date.now() - startTime;
 
-      PerformanceMonitor.getInstance().recordMetric(`api.${method}.${path}.error`, duration);
+      PerformanceMonitor.getInstance().recordMetric(
+        `api.${method}.${path}.error`,
+        duration
+      );
 
       throw error;
     }
@@ -176,12 +200,18 @@ export class ComponentPerformanceMonitor {
 
   // Monitor component render time
   recordRenderTime(componentName: string, duration: number): void {
-    PerformanceMonitor.getInstance().recordMetric(`component.${componentName}.render`, duration);
+    PerformanceMonitor.getInstance().recordMetric(
+      `component.${componentName}.render`,
+      duration
+    );
   }
 
   // Monitor component mount time
   recordMountTime(componentName: string, duration: number): void {
-    PerformanceMonitor.getInstance().recordMetric(`component.${componentName}.mount`, duration);
+    PerformanceMonitor.getInstance().recordMetric(
+      `component.${componentName}.mount`,
+      duration
+    );
   }
 }
 
@@ -207,9 +237,18 @@ export class MemoryMonitor {
     if (typeof process !== 'undefined' && process.memoryUsage) {
       const usage = process.memoryUsage();
 
-      PerformanceMonitor.getInstance().recordMetric('memory.heapUsed', usage.heapUsed);
-      PerformanceMonitor.getInstance().recordMetric('memory.heapTotal', usage.heapTotal);
-      PerformanceMonitor.getInstance().recordMetric('memory.external', usage.external);
+      PerformanceMonitor.getInstance().recordMetric(
+        'memory.heapUsed',
+        usage.heapUsed
+      );
+      PerformanceMonitor.getInstance().recordMetric(
+        'memory.heapTotal',
+        usage.heapTotal
+      );
+      PerformanceMonitor.getInstance().recordMetric(
+        'memory.external',
+        usage.external
+      );
       PerformanceMonitor.getInstance().recordMetric('memory.rss', usage.rss);
     }
   }
@@ -224,7 +263,9 @@ export class MemoryMonitor {
 
 // Export singleton instances
 export const performanceMonitor = PerformanceMonitor.getInstance();
-export const databasePerformanceMonitor = DatabasePerformanceMonitor.getInstance();
+export const databasePerformanceMonitor =
+  DatabasePerformanceMonitor.getInstance();
 export const apiPerformanceMonitor = ApiPerformanceMonitor.getInstance();
-export const componentPerformanceMonitor = ComponentPerformanceMonitor.getInstance();
+export const componentPerformanceMonitor =
+  ComponentPerformanceMonitor.getInstance();
 export const memoryMonitor = MemoryMonitor.getInstance();

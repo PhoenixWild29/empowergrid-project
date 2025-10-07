@@ -2,7 +2,12 @@
 
 import { useState, useCallback } from 'react';
 import { AsyncState, Project, Milestone } from '../types';
-import { fetchProjects, fetchProject, fetchProjectMilestones, createProject } from '../utils/program';
+import {
+  fetchProjects,
+  fetchProject,
+  fetchProjectMilestones,
+  createProject,
+} from '../utils/program';
 import { useWallet } from './useWallet';
 
 export const useProjects = () => {
@@ -22,7 +27,8 @@ export const useProjects = () => {
       setProjectsState({
         data: null,
         loading: false,
-        error: error instanceof Error ? error.message : 'Failed to load projects',
+        error:
+          error instanceof Error ? error.message : 'Failed to load projects',
       });
     }
   }, []);
@@ -40,7 +46,9 @@ export const useProject = (projectId?: number, creator?: string) => {
     error: null,
   });
 
-  const [milestonesState, setMilestonesState] = useState<AsyncState<Milestone[]>>({
+  const [milestonesState, setMilestonesState] = useState<
+    AsyncState<Milestone[]>
+  >({
     data: null,
     loading: false,
     error: null,
@@ -52,20 +60,28 @@ export const useProject = (projectId?: number, creator?: string) => {
     setProjectState({ data: null, loading: true, error: null });
 
     try {
-      const project = await fetchProject(projectId, new (await import('@solana/web3.js')).PublicKey(creator));
+      const project = await fetchProject(
+        projectId,
+        new (await import('@solana/web3.js')).PublicKey(creator)
+      );
       setProjectState({ data: project, loading: false, error: null });
 
       // Load milestones if project exists
       if (project) {
         setMilestonesState({ data: null, loading: true, error: null });
         try {
-          const milestones = await fetchProjectMilestones(new (await import('@solana/web3.js')).PublicKey(project.vault)); // Using vault as proxy for project PDA
+          const milestones = await fetchProjectMilestones(
+            new (await import('@solana/web3.js')).PublicKey(project.vault)
+          ); // Using vault as proxy for project PDA
           setMilestonesState({ data: milestones, loading: false, error: null });
         } catch (error) {
           setMilestonesState({
             data: null,
             loading: false,
-            error: error instanceof Error ? error.message : 'Failed to load milestones',
+            error:
+              error instanceof Error
+                ? error.message
+                : 'Failed to load milestones',
           });
         }
       }
@@ -73,7 +89,8 @@ export const useProject = (projectId?: number, creator?: string) => {
       setProjectState({
         data: null,
         loading: false,
-        error: error instanceof Error ? error.message : 'Failed to load project',
+        error:
+          error instanceof Error ? error.message : 'Failed to load project',
       });
     }
   }, [projectId, creator]);
@@ -93,41 +110,45 @@ export const useCreateProject = () => {
     error: null,
   });
 
-  const createNewProject = useCallback(async (
-    name: string,
-    description: string,
-    governanceAuthority: string,
-    oracleAuthority: string,
-    milestones: any[]
-  ) => {
-    if (!publicKey) {
-      setCreateState({
-        data: null,
-        loading: false,
-        error: 'Wallet not connected',
-      });
-      return;
-    }
+  const createNewProject = useCallback(
+    async (
+      name: string,
+      description: string,
+      governanceAuthority: string,
+      oracleAuthority: string,
+      milestones: any[]
+    ) => {
+      if (!publicKey) {
+        setCreateState({
+          data: null,
+          loading: false,
+          error: 'Wallet not connected',
+        });
+        return;
+      }
 
-    setCreateState({ data: null, loading: true, error: null });
+      setCreateState({ data: null, loading: true, error: null });
 
-    try {
-      const projectPDA = await createProject(
-        name,
-        description,
-        new (await import('@solana/web3.js')).PublicKey(governanceAuthority),
-        new (await import('@solana/web3.js')).PublicKey(oracleAuthority),
-        milestones
-      );
-      setCreateState({ data: projectPDA, loading: false, error: null });
-    } catch (error) {
-      setCreateState({
-        data: null,
-        loading: false,
-        error: error instanceof Error ? error.message : 'Failed to create project',
-      });
-    }
-  }, [publicKey]);
+      try {
+        const projectPDA = await createProject(
+          name,
+          description,
+          new (await import('@solana/web3.js')).PublicKey(governanceAuthority),
+          new (await import('@solana/web3.js')).PublicKey(oracleAuthority),
+          milestones
+        );
+        setCreateState({ data: projectPDA, loading: false, error: null });
+      } catch (error) {
+        setCreateState({
+          data: null,
+          loading: false,
+          error:
+            error instanceof Error ? error.message : 'Failed to create project',
+        });
+      }
+    },
+    [publicKey]
+  );
 
   return {
     ...createState,

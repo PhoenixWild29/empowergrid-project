@@ -106,11 +106,17 @@ export interface EmpowerGridProgram {
   // Instructions
   initialize: (ctx: any) => Promise<void>;
   createProject: (ctx: any, params: CreateProjectInstruction) => Promise<void>;
-  createMilestone: (ctx: any, params: CreateMilestoneInstruction) => Promise<void>;
+  createMilestone: (
+    ctx: any,
+    params: CreateMilestoneInstruction
+  ) => Promise<void>;
   fundProject: (ctx: any, params: FundProjectInstruction) => Promise<void>;
   submitMetrics: (ctx: any, params: SubmitMetricsInstruction) => Promise<void>;
   releaseMilestone: (ctx: any) => Promise<void>;
-  setProjectAuthority: (ctx: any, params: SetProjectAuthorityInstruction) => Promise<void>;
+  setProjectAuthority: (
+    ctx: any,
+    params: SetProjectAuthorityInstruction
+  ) => Promise<void>;
 
   // Accounts
   state: {
@@ -167,7 +173,7 @@ export const findProjectPDA = (
       Buffer.from('project'),
       state.toBuffer(),
       creator.toBuffer(),
-      Buffer.from(projectId.toString())
+      Buffer.from(projectId.toString()),
     ],
     programId
   );

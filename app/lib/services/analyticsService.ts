@@ -132,9 +132,10 @@ export class AnalyticsService {
         fundedProjects: projectStats.fundedProjects,
         completedProjects: projectStats.completedProjects,
         totalFunding: projectStats.totalFunding,
-        averageFunding: projectStats.totalProjects > 0
-          ? projectStats.totalFunding / projectStats.totalProjects
-          : 0,
+        averageFunding:
+          projectStats.totalProjects > 0
+            ? projectStats.totalFunding / projectStats.totalProjects
+            : 0,
         fundingByCategory,
         projectsByStatus,
         fundingTrends,
@@ -190,9 +191,10 @@ export class AnalyticsService {
 
       // Calculate metrics
       const averageProjectDuration = await this.getAverageProjectDuration();
-      const fundingSuccessRate = projectStats.totalProjects > 0
-        ? (projectStats.fundedProjects / projectStats.totalProjects) * 100
-        : 0;
+      const fundingSuccessRate =
+        projectStats.totalProjects > 0
+          ? (projectStats.fundedProjects / projectStats.totalProjects) * 100
+          : 0;
       const averageTimeToFund = await this.getAverageTimeToFund();
 
       // Get geographic distribution (placeholder - would need location data)
@@ -220,7 +222,9 @@ export class AnalyticsService {
   async getSystemAnalytics(): Promise<SystemAnalytics> {
     try {
       // Get performance metrics
-      const responseTimeStats = performanceMonitor.getMetricStats('api.response_time') || {
+      const responseTimeStats = performanceMonitor.getMetricStats(
+        'api.response_time'
+      ) || {
         average: 0,
         p95: 0,
         p99: 0,
@@ -228,7 +232,8 @@ export class AnalyticsService {
 
       // Get error rate
       const errorStats = errorTracker.getErrorStats();
-      const totalRequests = performanceMonitor.getMetricStats('api.requests')?.count || 1;
+      const totalRequests =
+        performanceMonitor.getMetricStats('api.requests')?.count || 1;
       const errorRate = (errorStats.total / totalRequests) * 100;
 
       // Get memory usage
@@ -260,11 +265,13 @@ export class AnalyticsService {
   }
 
   // Helper methods for data aggregation
-  private async getFundingTrends(days: number): Promise<Array<{
-    date: string;
-    amount: number;
-    projectCount: number;
-  }>> {
+  private async getFundingTrends(days: number): Promise<
+    Array<{
+      date: string;
+      amount: number;
+      projectCount: number;
+    }>
+  > {
     // This would query the database for funding data over time
     // For now, return mock data
     const trends = [];
@@ -287,29 +294,31 @@ export class AnalyticsService {
   private async getFundingByCategory(): Promise<Record<string, number>> {
     // This would aggregate funding by project category
     return {
-      'Solar': 50000,
-      'Wind': 35000,
-      'Hydro': 25000,
-      'Biomass': 15000,
-      'Geothermal': 10000,
+      Solar: 50000,
+      Wind: 35000,
+      Hydro: 25000,
+      Biomass: 15000,
+      Geothermal: 10000,
     };
   }
 
   private async getProjectsByStatus(): Promise<Record<string, number>> {
     const stats = await databaseService.getProjectStats();
     return {
-      'ACTIVE': stats.activeProjects,
-      'FUNDED': stats.fundedProjects,
-      'COMPLETED': stats.completedProjects,
-      'CANCELLED': 0, // Would need to add cancelled status
+      ACTIVE: stats.activeProjects,
+      FUNDED: stats.fundedProjects,
+      COMPLETED: stats.completedProjects,
+      CANCELLED: 0, // Would need to add cancelled status
     };
   }
 
-  private async getTopCategories(limit: number): Promise<Array<{
-    category: string;
-    projectCount: number;
-    totalFunding: number;
-  }>> {
+  private async getTopCategories(limit: number): Promise<
+    Array<{
+      category: string;
+      projectCount: number;
+      totalFunding: number;
+    }>
+  > {
     // This would query the database for category statistics
     return [
       { category: 'Solar', projectCount: 25, totalFunding: 50000 },
@@ -339,11 +348,13 @@ export class AnalyticsService {
     };
   }
 
-  private async getUserGrowthTrends(days: number): Promise<Array<{
-    date: string;
-    count: number;
-    cumulative: number;
-  }>> {
+  private async getUserGrowthTrends(days: number): Promise<
+    Array<{
+      date: string;
+      count: number;
+      cumulative: number;
+    }>
+  > {
     // This would query user registration data over time
     const trends = [];
     let cumulative = 1000;
@@ -365,43 +376,104 @@ export class AnalyticsService {
     return trends;
   }
 
-  private async getTopFunders(limit: number): Promise<Array<{
-    userId: string;
-    username: string;
-    totalFunded: number;
-    projectsFunded: number;
-  }>> {
+  private async getTopFunders(limit: number): Promise<
+    Array<{
+      userId: string;
+      username: string;
+      totalFunded: number;
+      projectsFunded: number;
+    }>
+  > {
     // This would query top funders from database
     return [
-      { userId: '1', username: 'alice_funder', totalFunded: 25000, projectsFunded: 8 },
-      { userId: '2', username: 'bob_investor', totalFunded: 22000, projectsFunded: 6 },
-      { userId: '3', username: 'charlie_green', totalFunded: 18000, projectsFunded: 5 },
-      { userId: '4', username: 'diana_solar', totalFunded: 15000, projectsFunded: 4 },
-      { userId: '5', username: 'eve_wind', totalFunded: 12000, projectsFunded: 3 },
+      {
+        userId: '1',
+        username: 'alice_funder',
+        totalFunded: 25000,
+        projectsFunded: 8,
+      },
+      {
+        userId: '2',
+        username: 'bob_investor',
+        totalFunded: 22000,
+        projectsFunded: 6,
+      },
+      {
+        userId: '3',
+        username: 'charlie_green',
+        totalFunded: 18000,
+        projectsFunded: 5,
+      },
+      {
+        userId: '4',
+        username: 'diana_solar',
+        totalFunded: 15000,
+        projectsFunded: 4,
+      },
+      {
+        userId: '5',
+        username: 'eve_wind',
+        totalFunded: 12000,
+        projectsFunded: 3,
+      },
     ].slice(0, limit);
   }
 
-  private async getTopCreators(limit: number): Promise<Array<{
-    userId: string;
-    username: string;
-    projectsCreated: number;
-    totalRaised: number;
-    successRate: number;
-  }>> {
+  private async getTopCreators(limit: number): Promise<
+    Array<{
+      userId: string;
+      username: string;
+      projectsCreated: number;
+      totalRaised: number;
+      successRate: number;
+    }>
+  > {
     // This would query top creators from database
     return [
-      { userId: '1', username: 'farmer_joe', projectsCreated: 5, totalRaised: 45000, successRate: 100 },
-      { userId: '2', username: 'solar_smith', projectsCreated: 4, totalRaised: 38000, successRate: 75 },
-      { userId: '3', username: 'wind_wizard', projectsCreated: 3, totalRaised: 32000, successRate: 67 },
-      { userId: '4', username: 'hydro_hero', projectsCreated: 2, totalRaised: 28000, successRate: 50 },
-      { userId: '5', username: 'green_guru', projectsCreated: 6, totalRaised: 25000, successRate: 83 },
+      {
+        userId: '1',
+        username: 'farmer_joe',
+        projectsCreated: 5,
+        totalRaised: 45000,
+        successRate: 100,
+      },
+      {
+        userId: '2',
+        username: 'solar_smith',
+        projectsCreated: 4,
+        totalRaised: 38000,
+        successRate: 75,
+      },
+      {
+        userId: '3',
+        username: 'wind_wizard',
+        projectsCreated: 3,
+        totalRaised: 32000,
+        successRate: 67,
+      },
+      {
+        userId: '4',
+        username: 'hydro_hero',
+        projectsCreated: 2,
+        totalRaised: 28000,
+        successRate: 50,
+      },
+      {
+        userId: '5',
+        username: 'green_guru',
+        projectsCreated: 6,
+        totalRaised: 25000,
+        successRate: 83,
+      },
     ].slice(0, limit);
   }
 
-  private async getReputationDistribution(): Promise<Array<{
-    range: string;
-    count: number;
-  }>> {
+  private async getReputationDistribution(): Promise<
+    Array<{
+      range: string;
+      count: number;
+    }>
+  > {
     // This would query reputation distribution from database
     return [
       { range: '0-10', count: 150 },
@@ -412,11 +484,13 @@ export class AnalyticsService {
     ];
   }
 
-  private async getMonthlyVolume(months: number): Promise<Array<{
-    month: string;
-    volume: number;
-    transactions: number;
-  }>> {
+  private async getMonthlyVolume(months: number): Promise<
+    Array<{
+      month: string;
+      volume: number;
+      transactions: number;
+    }>
+  > {
     // This would query monthly funding volume
     const volume = [];
     const now = new Date();
@@ -426,7 +500,10 @@ export class AnalyticsService {
       date.setMonth(date.getMonth() - i);
 
       volume.push({
-        month: date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
+        month: date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+        }),
         volume: Math.floor(Math.random() * 50000) + 10000,
         transactions: Math.floor(Math.random() * 50) + 10,
       });
@@ -445,11 +522,13 @@ export class AnalyticsService {
     return 30; // days
   }
 
-  private async getGeographicDistribution(): Promise<Array<{
-    region: string;
-    projectCount: number;
-    totalFunding: number;
-  }>> {
+  private async getGeographicDistribution(): Promise<
+    Array<{
+      region: string;
+      projectCount: number;
+      totalFunding: number;
+    }>
+  > {
     // This would query geographic distribution of projects
     return [
       { region: 'North America', projectCount: 35, totalFunding: 75000 },
@@ -460,10 +539,12 @@ export class AnalyticsService {
     ];
   }
 
-  private async getHourlyActivity(): Promise<Array<{
-    hour: number;
-    activity: number;
-  }>> {
+  private async getHourlyActivity(): Promise<
+    Array<{
+      hour: number;
+      activity: number;
+    }>
+  > {
     // This would query hourly activity patterns
     const activity = [];
     for (let hour = 0; hour < 24; hour++) {
@@ -494,10 +575,10 @@ export class AnalyticsService {
         '/api/actions/fund': 1650,
       },
       byMethod: {
-        'GET': 12800,
-        'POST': 2100,
-        'PUT': 450,
-        'DELETE': 70,
+        GET: 12800,
+        POST: 2100,
+        PUT: 450,
+        DELETE: 70,
       },
     };
   }
@@ -550,7 +631,11 @@ export class AnalyticsService {
       for (const key in obj) {
         if (obj.hasOwnProperty(key)) {
           const newKey = prefix ? `${prefix}.${key}` : key;
-          if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
+          if (
+            typeof obj[key] === 'object' &&
+            obj[key] !== null &&
+            !Array.isArray(obj[key])
+          ) {
             flatten(obj[key], newKey);
           } else {
             rows.push(`${newKey},${obj[key]}`);

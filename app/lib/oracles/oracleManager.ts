@@ -1,5 +1,9 @@
 import { logger } from '../logging/logger';
-import { errorTracker, ErrorSeverity, ErrorCategory } from '../monitoring/errorTracker';
+import {
+  errorTracker,
+  ErrorSeverity,
+  ErrorCategory,
+} from '../monitoring/errorTracker';
 import { performanceMonitor } from '../monitoring/performance';
 
 export interface OracleData {
@@ -70,7 +74,9 @@ export class OracleManager {
     // Primary Switchboard oracle
     this.addProvider({
       name: 'switchboard-primary',
-      endpoint: process.env.SWITCHBOARD_ENDPOINT || 'http://localhost:3000/api/meter/latest',
+      endpoint:
+        process.env.SWITCHBOARD_ENDPOINT ||
+        'http://localhost:3000/api/meter/latest',
       weight: 1.0,
       timeout: 5000,
       retryAttempts: 3,
@@ -82,7 +88,9 @@ export class OracleManager {
     // Secondary backup oracle
     this.addProvider({
       name: 'switchboard-secondary',
-      endpoint: process.env.SWITCHBOARD_BACKUP_ENDPOINT || 'http://localhost:3000/api/meter/mock-oracle',
+      endpoint:
+        process.env.SWITCHBOARD_BACKUP_ENDPOINT ||
+        'http://localhost:3000/api/meter/mock-oracle',
       weight: 0.9,
       timeout: 5000,
       retryAttempts: 3,
@@ -94,7 +102,9 @@ export class OracleManager {
     // Third-party oracle (simulated)
     this.addProvider({
       name: 'external-oracle-1',
-      endpoint: process.env.EXTERNAL_ORACLE_1_ENDPOINT || 'http://localhost:3000/api/meter/external-oracle',
+      endpoint:
+        process.env.EXTERNAL_ORACLE_1_ENDPOINT ||
+        'http://localhost:3000/api/meter/external-oracle',
       weight: 0.8,
       timeout: 8000,
       retryAttempts: 2,
@@ -106,7 +116,9 @@ export class OracleManager {
     // IoT device direct reading (simulated)
     this.addProvider({
       name: 'iot-direct',
-      endpoint: process.env.IOT_DIRECT_ENDPOINT || 'http://iot-gateway.local:8080/metrics',
+      endpoint:
+        process.env.IOT_DIRECT_ENDPOINT ||
+        'http://iot-gateway.local:8080/metrics',
       weight: 0.7,
       timeout: 3000,
       retryAttempts: 5,
@@ -147,7 +159,9 @@ export class OracleManager {
     return Array.from(this.providers.values()).filter(p => p.enabled);
   }
 
-  async fetchFromProvider(provider: OracleProvider): Promise<OracleData | null> {
+  async fetchFromProvider(
+    provider: OracleProvider
+  ): Promise<OracleData | null> {
     const startTime = Date.now();
 
     try {
@@ -158,7 +172,7 @@ export class OracleManager {
         signal: controller.signal,
         headers: {
           'User-Agent': 'EmpowerGrid-MultiOracle/1.0',
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
       });
 
@@ -189,7 +203,10 @@ export class OracleManager {
       provider.consecutiveFailures = 0;
 
       // Record performance
-      performanceMonitor.recordMetric(`oracle.${provider.name}.response_time`, Date.now() - startTime);
+      performanceMonitor.recordMetric(
+        `oracle.${provider.name}.response_time`,
+        Date.now() - startTime
+      );
 
       logger.info(`Successfully fetched data from ${provider.name}`, {
         kwh: reading.kwh,
@@ -198,7 +215,6 @@ export class OracleManager {
       });
 
       return reading;
-
     } catch (error) {
       // Update provider failure metrics
       provider.lastFailure = Date.now();
@@ -207,10 +223,13 @@ export class OracleManager {
       // Reduce reputation on consecutive failures
       if (provider.consecutiveFailures > 3) {
         provider.reputation = Math.max(10, provider.reputation - 5);
-        logger.warn(`Reduced reputation for ${provider.name} due to consecutive failures`, {
-          consecutiveFailures: provider.consecutiveFailures,
-          newReputation: provider.reputation,
-        });
+        logger.warn(
+          `Reduced reputation for ${provider.name} due to consecutive failures`,
+          {
+            consecutiveFailures: provider.consecutiveFailures,
+            newReputation: provider.reputation,
+          }
+        );
       }
 
       // Record error
@@ -241,7 +260,9 @@ export class OracleManager {
     const enabledProviders = this.getEnabledProviders();
     const readings: OracleData[] = [];
 
-    logger.info(`Fetching readings from ${enabledProviders.length} oracle providers for project ${projectId}`);
+    logger.info(
+      `Fetching readings from ${enabledProviders.length} oracle providers for project ${projectId}`
+    );
 
     // Fetch from all providers concurrently
     const promises = enabledProviders.map(provider =>
@@ -257,16 +278,21 @@ export class OracleManager {
     // Store readings for this project
     this.readings.set(projectId, readings);
 
-    logger.info(`Collected ${readings.length} readings for project ${projectId}`, {
-      sources: readings.map(r => r.source),
-    });
+    logger.info(
+      `Collected ${readings.length} readings for project ${projectId}`,
+      {
+        sources: readings.map(r => r.source),
+      }
+    );
 
     return readings;
   }
 
   calculateConsensus(readings: OracleData[]): AggregatedReading | null {
     if (readings.length < this.consensusConfig.minSources) {
-      logger.warn(`Insufficient readings for consensus: ${readings.length}/${this.consensusConfig.minSources}`);
+      logger.warn(
+        `Insufficient readings for consensus: ${readings.length}/${this.consensusConfig.minSources}`
+      );
       return null;
     }
 
@@ -301,17 +327,23 @@ export class OracleManager {
       const kwhDeviation = Math.abs(reading.kwh - avgKwh);
       const co2Deviation = Math.abs(reading.co2 - avgCo2);
 
-      if (kwhDeviation > this.consensusConfig.outlierThreshold * kwhStdDev ||
-          co2Deviation > this.consensusConfig.outlierThreshold * co2StdDev) {
+      if (
+        kwhDeviation > this.consensusConfig.outlierThreshold * kwhStdDev ||
+        co2Deviation > this.consensusConfig.outlierThreshold * co2StdDev
+      ) {
         outlierSources.push(reading.source);
       }
     });
 
     // Filter out outliers for final consensus
-    const validReadings = readings.filter(r => !outlierSources.includes(r.source));
+    const validReadings = readings.filter(
+      r => !outlierSources.includes(r.source)
+    );
 
     if (validReadings.length < this.consensusConfig.minSources) {
-      logger.warn(`Too many outliers detected, insufficient valid readings for consensus`);
+      logger.warn(
+        `Too many outliers detected, insufficient valid readings for consensus`
+      );
       return null;
     }
 
@@ -335,8 +367,9 @@ export class OracleManager {
 
     // Check consensus threshold
     const consensusRatio = validReadings.length / readings.length;
-    const hasConsensus = consensusRatio >= this.consensusConfig.consensusThreshold &&
-                        finalConfidence >= this.consensusConfig.requiredConfidence;
+    const hasConsensus =
+      consensusRatio >= this.consensusConfig.consensusThreshold &&
+      finalConfidence >= this.consensusConfig.requiredConfidence;
 
     const result: AggregatedReading = {
       timestamp: Date.now(),
@@ -361,7 +394,9 @@ export class OracleManager {
     return result;
   }
 
-  async getAggregatedReading(projectId: string): Promise<AggregatedReading | null> {
+  async getAggregatedReading(
+    projectId: string
+  ): Promise<AggregatedReading | null> {
     const readings = await this.fetchAllReadings(projectId);
 
     if (readings.length === 0) {
@@ -375,7 +410,8 @@ export class OracleManager {
   private calculateStandardDeviation(values: number[]): number {
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
     const squaredDiffs = values.map(val => Math.pow(val - mean, 2));
-    const variance = squaredDiffs.reduce((sum, val) => sum + val, 0) / values.length;
+    const variance =
+      squaredDiffs.reduce((sum, val) => sum + val, 0) / values.length;
     return Math.sqrt(variance);
   }
 
@@ -389,14 +425,17 @@ export class OracleManager {
   } {
     const providers = Array.from(this.providers.values());
     const enabledProviders = providers.filter(p => p.enabled);
-    const healthyProviders = enabledProviders.filter(p =>
-      p.consecutiveFailures === 0 ||
-      (p.lastSuccess && Date.now() - p.lastSuccess < 300000) // Healthy if successful in last 5 minutes
+    const healthyProviders = enabledProviders.filter(
+      p =>
+        p.consecutiveFailures === 0 ||
+        (p.lastSuccess && Date.now() - p.lastSuccess < 300000) // Healthy if successful in last 5 minutes
     );
 
-    const averageReputation = enabledProviders.length > 0
-      ? enabledProviders.reduce((sum, p) => sum + p.reputation, 0) / enabledProviders.length
-      : 0;
+    const averageReputation =
+      enabledProviders.length > 0
+        ? enabledProviders.reduce((sum, p) => sum + p.reputation, 0) /
+          enabledProviders.length
+        : 0;
 
     return {
       totalProviders: providers.length,
@@ -410,7 +449,9 @@ export class OracleManager {
   // Configuration management
   updateConsensusConfig(config: Partial<ConsensusConfig>): void {
     Object.assign(this.consensusConfig, config);
-    logger.info('Updated consensus configuration', { config: this.consensusConfig });
+    logger.info('Updated consensus configuration', {
+      config: this.consensusConfig,
+    });
   }
 
   getConsensusConfig(): ConsensusConfig {
@@ -419,13 +460,15 @@ export class OracleManager {
 
   // Cleanup old readings (keep last 24 hours)
   cleanupOldReadings(): void {
-    const cutoffTime = Date.now() - (24 * 60 * 60 * 1000); // 24 hours ago
+    const cutoffTime = Date.now() - 24 * 60 * 60 * 1000; // 24 hours ago
 
     for (const [projectId, readings] of this.readings) {
       const filteredReadings = readings.filter(r => r.timestamp > cutoffTime);
       if (filteredReadings.length !== readings.length) {
         this.readings.set(projectId, filteredReadings);
-        logger.info(`Cleaned up ${readings.length - filteredReadings.length} old readings for project ${projectId}`);
+        logger.info(
+          `Cleaned up ${readings.length - filteredReadings.length} old readings for project ${projectId}`
+        );
       }
     }
   }

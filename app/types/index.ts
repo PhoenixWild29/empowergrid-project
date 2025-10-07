@@ -27,7 +27,10 @@ export const solToLamports = (sol: number): number => {
 /**
  * Format a public key for display
  */
-export const formatPublicKey = (key: PublicKey | string, length: number = 5): string => {
+export const formatPublicKey = (
+  key: PublicKey | string,
+  length: number = 5
+): string => {
   const keyStr = typeof key === 'string' ? key : key.toString();
   if (keyStr.length <= 40) return keyStr;
   return `${keyStr.slice(0, length)}...${keyStr.slice(-length)}`;
@@ -37,7 +40,7 @@ export const formatPublicKey = (key: PublicKey | string, length: number = 5): st
  * Validate a Solana public key string
  */
 export const isValidPublicKey = (key: string): boolean => {
-  if (!key || key.length !== 32 && key.length !== 44) return false;
+  if (!key || (key.length !== 32 && key.length !== 44)) return false;
   try {
     new PublicKey(key);
     return true;

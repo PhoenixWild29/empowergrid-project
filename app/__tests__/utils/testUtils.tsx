@@ -1,6 +1,6 @@
-import React, { ReactElement } from 'react'
-import { render, RenderOptions } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import React, { ReactElement } from 'react';
+import { render, RenderOptions } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock QueryClient for React Query
 const createTestQueryClient = () =>
@@ -13,24 +13,22 @@ const createTestQueryClient = () =>
         retry: false,
       },
     },
-  })
+  });
 
 // Custom render function that includes providers
 const customRender = (
   ui: ReactElement,
-  options?: Omit<RenderOptions, 'wrapper'>,
+  options?: Omit<RenderOptions, 'wrapper'>
 ) => {
   const TestWrapper = ({ children }: { children: React.ReactNode }) => {
-    const queryClient = createTestQueryClient()
+    const queryClient = createTestQueryClient();
     return (
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
-    )
-  }
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+  };
 
-  return render(ui, { wrapper: TestWrapper, ...options })
-}
+  return render(ui, { wrapper: TestWrapper, ...options });
+};
 
 // Mock wallet hook
 export const mockWalletHook = {
@@ -40,7 +38,7 @@ export const mockWalletHook = {
   connect: jest.fn(),
   disconnect: jest.fn(),
   publicKey: null, // Will be set in tests
-}
+};
 
 // Mock program utilities
 export const mockProgramUtils = {
@@ -50,7 +48,7 @@ export const mockProgramUtils = {
   fetchProjects: jest.fn(),
   fetchProject: jest.fn(),
   createProject: jest.fn(),
-}
+};
 
 // Test data generators
 export const createMockProject = (overrides = {}) => ({
@@ -68,7 +66,7 @@ export const createMockProject = (overrides = {}) => ({
   lastMetricsRoot: new Array(32).fill(0),
   numMilestones: 3,
   ...overrides,
-})
+});
 
 export const createMockMilestone = (overrides = {}) => ({
   project: 'ProjectAddress11111111111111111111111111111111',
@@ -79,27 +77,27 @@ export const createMockMilestone = (overrides = {}) => ({
   payee: 'PayeeAddress11111111111111111111111111111111',
   released: false,
   ...overrides,
-})
+});
 
 // Export custom render as default
-export { customRender as render }
+export { customRender as render };
 
 // Re-export everything from testing-library
-export * from '@testing-library/react'
-export * from '@testing-library/jest-dom'
+export * from '@testing-library/react';
+export * from '@testing-library/jest-dom';
 
 describe('testUtils', () => {
   it('should export custom render function', () => {
-    expect(typeof customRender).toBe('function')
-  })
+    expect(typeof customRender).toBe('function');
+  });
 
   it('should export mock utilities', () => {
-    expect(mockWalletHook).toBeDefined()
-    expect(mockProgramUtils).toBeDefined()
-  })
+    expect(mockWalletHook).toBeDefined();
+    expect(mockProgramUtils).toBeDefined();
+  });
 
   it('should export test data generators', () => {
-    expect(typeof createMockProject).toBe('function')
-    expect(typeof createMockMilestone).toBe('function')
-  })
-})
+    expect(typeof createMockProject).toBe('function');
+    expect(typeof createMockMilestone).toBe('function');
+  });
+});

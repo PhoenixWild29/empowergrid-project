@@ -9,7 +9,7 @@ export default function App({ Component, pageProps }: AppProps) {
     <AuthProvider>
       <ErrorBoundary>
         <Component {...pageProps} />
-        <ToastContainer position="top-right" />
+        <ToastContainer position='top-right' />
       </ErrorBoundary>
     </AuthProvider>
   );

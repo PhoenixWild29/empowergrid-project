@@ -31,7 +31,7 @@ export default function Toast({
   title,
   message,
   duration = 5000,
-  onClose
+  onClose,
 }: ToastProps) {
   useEffect(() => {
     if (duration > 0) {
@@ -46,29 +46,21 @@ export default function Toast({
   return (
     <div
       className={`max-w-md w-full ${toastStyles[type]} border rounded-lg p-4 shadow-lg`}
-      role="alert"
+      role='alert'
     >
-      <div className="flex items-start">
-        <div className="flex-shrink-0 text-2xl">
-          {iconStyles[type]}
+      <div className='flex items-start'>
+        <div className='flex-shrink-0 text-2xl'>{iconStyles[type]}</div>
+        <div className='ml-3 flex-1'>
+          <h3 className='text-sm font-medium'>{title}</h3>
+          {message && <p className='mt-1 text-sm opacity-90'>{message}</p>}
         </div>
-        <div className="ml-3 flex-1">
-          <h3 className="text-sm font-medium">
-            {title}
-          </h3>
-          {message && (
-            <p className="mt-1 text-sm opacity-90">
-              {message}
-            </p>
-          )}
-        </div>
-        <div className="ml-4 flex-shrink-0">
+        <div className='ml-4 flex-shrink-0'>
           <button
             onClick={() => onClose(id)}
-            className="inline-flex opacity-60 hover:opacity-100 transition-opacity"
-            aria-label="Close"
+            className='inline-flex opacity-60 hover:opacity-100 transition-opacity'
+            aria-label='Close'
           >
-            <span className="text-lg">×</span>
+            <span className='text-lg'>×</span>
           </button>
         </div>
       </div>

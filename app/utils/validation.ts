@@ -41,7 +41,7 @@ export const amountSchema = z
 
 export const solAmountSchema = z
   .string()
-  .transform((val) => parseFloat(val))
+  .transform(val => parseFloat(val))
   .pipe(amountSchema);
 
 export const projectNameSchema = z
@@ -85,9 +85,9 @@ export const milestoneSchema = z.object({
   index: z.number().int().min(0),
   amountLamports: z
     .string()
-    .transform((val) => parseFloat(val))
+    .transform(val => parseFloat(val))
     .pipe(amountSchema)
-    .transform((val) => Math.floor(val * 1_000_000_000)), // Convert to lamports
+    .transform(val => Math.floor(val * 1_000_000_000)), // Convert to lamports
   kwhTarget: kwhTargetSchema,
   co2Target: co2TargetSchema,
   payee: payeeAddressSchema,
@@ -139,14 +139,16 @@ export interface ValidationResult {
 export const validateField = <T>(
   schema: z.ZodSchema<T>,
   value: any
-): { success: true; data: T } | { success: false; errors: ValidationError[] } => {
+):
+  | { success: true; data: T }
+  | { success: false; errors: ValidationError[] } => {
   const result = schema.safeParse(value);
 
   if (result.success) {
     return { success: true, data: result.data };
   }
 
-  const errors: ValidationError[] = result.error.errors.map((err) => ({
+  const errors: ValidationError[] = result.error.errors.map(err => ({
     field: err.path.join('.'),
     message: err.message,
     code: err.code,
@@ -158,13 +160,15 @@ export const validateField = <T>(
 export const validateForm = <T>(
   schema: z.ZodSchema<T>,
   formData: any
-): { success: true; data: T } | { success: false; errors: ValidationError[] } => {
+):
+  | { success: true; data: T }
+  | { success: false; errors: ValidationError[] } => {
   return validateField(schema, formData);
 };
 
 // Error formatting
 export const formatValidationErrors = (errors: ValidationError[]): string => {
-  return errors.map((error) => `${error.field}: ${error.message}`).join('\n');
+  return errors.map(error => `${error.field}: ${error.message}`).join('\n');
 };
 
 export const formatApiError = (error: ApiError): string => {

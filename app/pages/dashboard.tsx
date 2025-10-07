@@ -16,7 +16,9 @@ export default function Dashboard() {
   const { handleError } = useErrorHandler();
   const [projects, setProjects] = useState<ProjectWithMilestones[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'active' | 'funded' | 'completed'>('all');
+  const [filter, setFilter] = useState<
+    'all' | 'active' | 'funded' | 'completed'
+  >('all');
 
   // Mock data - in real app, this would fetch from API
   useEffect(() => {
@@ -31,7 +33,8 @@ export default function Dashboard() {
           {
             id: 1,
             name: 'Solar Farm Alpha',
-            description: 'Large-scale solar installation in rural Nevada providing clean energy to 500+ homes',
+            description:
+              'Large-scale solar installation in rural Nevada providing clean energy to 500+ homes',
             creator: {} as any, // Mock public key
             governanceAuthority: {} as any,
             oracleAuthority: {} as any,
@@ -84,7 +87,8 @@ export default function Dashboard() {
           {
             id: 2,
             name: 'Wind Turbine Grid',
-            description: 'Community-owned wind farm project connecting 10 turbines across 200 acres',
+            description:
+              'Community-owned wind farm project connecting 10 turbines across 200 acres',
             creator: {} as any,
             governanceAuthority: {} as any,
             oracleAuthority: {} as any,
@@ -128,7 +132,8 @@ export default function Dashboard() {
           {
             id: 3,
             name: 'Hydro Power Station',
-            description: 'Small hydroelectric dam providing sustainable energy to local community',
+            description:
+              'Small hydroelectric dam providing sustainable energy to local community',
             creator: {} as any,
             governanceAuthority: {} as any,
             oracleAuthority: {} as any,
@@ -174,12 +179,16 @@ export default function Dashboard() {
   }, [handleError]);
 
   const filteredProjects = projects.filter(project => {
-    const completedMilestones = project.milestones.filter(m => m.released).length;
+    const completedMilestones = project.milestones.filter(
+      m => m.released
+    ).length;
     const totalMilestones = project.milestones.length;
 
     switch (filter) {
       case 'active':
-        return project.fundedAmount > 0 && completedMilestones < totalMilestones;
+        return (
+          project.fundedAmount > 0 && completedMilestones < totalMilestones
+        );
       case 'funded':
         return project.fundedAmount > 0 && completedMilestones === 0;
       case 'completed':
@@ -196,7 +205,7 @@ export default function Dashboard() {
   const FilterButton = ({
     value,
     label,
-    count
+    count,
   }: {
     value: typeof filter;
     label: string;
@@ -216,81 +225,105 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className='min-h-screen bg-gray-50'>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Project Dashboard</h1>
-            <p className="text-gray-600 mt-2">
-              Monitor renewable energy projects, track funding progress, and view platform metrics
+          <div className='mb-8'>
+            <h1 className='text-3xl font-bold text-gray-900'>
+              Project Dashboard
+            </h1>
+            <p className='text-gray-600 mt-2'>
+              Monitor renewable energy projects, track funding progress, and
+              view platform metrics
             </p>
           </div>
 
           {/* Platform Metrics */}
-          <div className="mb-12">
+          <div className='mb-12'>
             <MetricsOverview />
           </div>
 
           {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+          <div className='grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12'>
             {/* Projects Section - Takes 2 columns on large screens */}
-            <div className="lg:col-span-2">
+            <div className='lg:col-span-2'>
               {/* Project Filters */}
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Projects</h2>
-                <div className="flex flex-wrap gap-2">
+              <div className='mb-8'>
+                <h2 className='text-2xl font-bold text-gray-900 mb-4'>
+                  Projects
+                </h2>
+                <div className='flex flex-wrap gap-2'>
                   <FilterButton
-                    value="all"
-                    label="All Projects"
+                    value='all'
+                    label='All Projects'
                     count={projects.length}
                   />
                   <FilterButton
-                    value="active"
-                    label="Active"
-                    count={projects.filter(p => {
-                      const completed = p.milestones.filter(m => m.released).length;
-                      return p.fundedAmount > 0 && completed < p.milestones.length;
-                    }).length}
+                    value='active'
+                    label='Active'
+                    count={
+                      projects.filter(p => {
+                        const completed = p.milestones.filter(
+                          m => m.released
+                        ).length;
+                        return (
+                          p.fundedAmount > 0 && completed < p.milestones.length
+                        );
+                      }).length
+                    }
                   />
                   <FilterButton
-                    value="funded"
-                    label="Recently Funded"
-                    count={projects.filter(p => p.fundedAmount > 0 && p.milestones.every(m => !m.released)).length}
+                    value='funded'
+                    label='Recently Funded'
+                    count={
+                      projects.filter(
+                        p =>
+                          p.fundedAmount > 0 &&
+                          p.milestones.every(m => !m.released)
+                      ).length
+                    }
                   />
                   <FilterButton
-                    value="completed"
-                    label="Completed"
-                    count={projects.filter(p => p.milestones.every(m => m.released)).length}
+                    value='completed'
+                    label='Completed'
+                    count={
+                      projects.filter(p => p.milestones.every(m => m.released))
+                        .length
+                    }
                   />
                 </div>
               </div>
 
               {/* Projects Grid */}
               {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
                   {[...Array(6)].map((_, i) => (
-                    <div key={i} className="bg-white rounded-lg shadow-md p-6 animate-pulse">
-                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                      <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
-                      <div className="h-20 bg-gray-200 rounded mb-4"></div>
-                      <div className="h-8 bg-gray-200 rounded"></div>
+                    <div
+                      key={i}
+                      className='bg-white rounded-lg shadow-md p-6 animate-pulse'
+                    >
+                      <div className='h-4 bg-gray-200 rounded w-3/4 mb-2'></div>
+                      <div className='h-4 bg-gray-200 rounded w-1/2 mb-4'></div>
+                      <div className='h-20 bg-gray-200 rounded mb-4'></div>
+                      <div className='h-8 bg-gray-200 rounded'></div>
                     </div>
                   ))}
                 </div>
               ) : filteredProjects.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="text-6xl text-gray-300 mb-4">📊</div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No projects found</h3>
-                  <p className="text-gray-600">
+                <div className='text-center py-12'>
+                  <div className='text-6xl text-gray-300 mb-4'>📊</div>
+                  <h3 className='text-lg font-medium text-gray-900 mb-2'>
+                    No projects found
+                  </h3>
+                  <p className='text-gray-600'>
                     {filter === 'all'
                       ? 'No projects have been created yet.'
-                      : `No projects match the "${filter}" filter.`
-                    }
+                      : `No projects match the "${filter}" filter.`}
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {filteredProjects.map((project) => (
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                  {filteredProjects.map(project => (
                     <ProjectStatusCard
                       key={project.id}
                       project={project}
@@ -303,7 +336,7 @@ export default function Dashboard() {
             </div>
 
             {/* Activity Feed - Takes 1 column on large screens */}
-            <div className="lg:col-span-1">
+            <div className='lg:col-span-1'>
               <ActivityFeed />
             </div>
           </div>

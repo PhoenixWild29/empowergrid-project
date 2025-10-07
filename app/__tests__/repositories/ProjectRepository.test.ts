@@ -17,12 +17,15 @@ import { ProjectStatus } from '@prisma/client';
 
 // Get references to the mocked functions
 const mockPrisma = require('../../lib/prisma').prisma as jest.Mocked<any>;
-const mockProjectFindUnique = mockPrisma.project.findUnique as jest.MockedFunction<any>;
+const mockProjectFindUnique = mockPrisma.project
+  .findUnique as jest.MockedFunction<any>;
 const mockProjectCreate = mockPrisma.project.create as jest.MockedFunction<any>;
 const mockProjectUpdate = mockPrisma.project.update as jest.MockedFunction<any>;
 const mockProjectDelete = mockPrisma.project.delete as jest.MockedFunction<any>;
-const mockProjectFindMany = mockPrisma.project.findMany as jest.MockedFunction<any>;
-const mockProjectAggregate = mockPrisma.project.aggregate as jest.MockedFunction<any>;
+const mockProjectFindMany = mockPrisma.project
+  .findMany as jest.MockedFunction<any>;
+const mockProjectAggregate = mockPrisma.project
+  .aggregate as jest.MockedFunction<any>;
 const mockProjectCount = mockPrisma.project.count as jest.MockedFunction<any>;
 
 describe('ProjectRepository', () => {
@@ -175,7 +178,11 @@ describe('ProjectRepository', () => {
             OR: [
               { title: { contains: 'blockchain', mode: 'insensitive' } },
               { description: { contains: 'blockchain', mode: 'insensitive' } },
-              { creator: { username: { contains: 'blockchain', mode: 'insensitive' } } },
+              {
+                creator: {
+                  username: { contains: 'blockchain', mode: 'insensitive' },
+                },
+              },
             ],
           },
         })
@@ -203,7 +210,10 @@ describe('ProjectRepository', () => {
       mockProjectFindUnique.mockResolvedValue(mockProject);
       mockProjectUpdate.mockResolvedValue(mockUpdatedProject);
 
-      const result = await projectRepository.updateFundingAmount('project-1', 500);
+      const result = await projectRepository.updateFundingAmount(
+        'project-1',
+        500
+      );
 
       expect(result).toEqual(mockUpdatedProject);
       expect(mockProjectUpdate).toHaveBeenCalledWith({
@@ -235,7 +245,10 @@ describe('ProjectRepository', () => {
       };
 
       mockProjectFindUnique.mockResolvedValue(mockProject);
-      mockProjectUpdate.mockResolvedValue({ ...mockProject, currentAmount: 500 });
+      mockProjectUpdate.mockResolvedValue({
+        ...mockProject,
+        currentAmount: 500,
+      });
 
       await projectRepository.updateFundingAmount('project-1', 200);
 
@@ -292,8 +305,8 @@ describe('ProjectRepository', () => {
     test('should return project statistics', async () => {
       mockProjectCount
         .mockResolvedValueOnce(100) // totalProjects
-        .mockResolvedValueOnce(50)  // activeProjects
-        .mockResolvedValueOnce(25)  // fundedProjects
+        .mockResolvedValueOnce(50) // activeProjects
+        .mockResolvedValueOnce(25) // fundedProjects
         .mockResolvedValueOnce(10); // completedProjects
 
       mockProjectAggregate.mockResolvedValue({

@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
@@ -56,7 +62,9 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({
       setError(null);
 
       // Load proposal details
-      const proposalResponse = await fetch(`/api/governance/proposals/${proposalId}`);
+      const proposalResponse = await fetch(
+        `/api/governance/proposals/${proposalId}`
+      );
       if (!proposalResponse.ok) {
         throw new Error('Failed to load proposal');
       }
@@ -73,9 +81,11 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({
           setVoterInfo(voterData.data);
         }
       }
-
     } catch (err) {
-      logger.error('Failed to load proposal data', { error: (err as Error).message, proposalId });
+      logger.error('Failed to load proposal data', {
+        error: (err as Error).message,
+        proposalId,
+      });
       setError((err as Error).message);
     } finally {
       setLoading(false);
@@ -110,9 +120,12 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({
       await loadProposalData();
 
       logger.info('Vote cast successfully', { proposalId, option });
-
     } catch (err) {
-      logger.error('Failed to cast vote', { error: (err as Error).message, proposalId, option });
+      logger.error('Failed to cast vote', {
+        error: (err as Error).message,
+        proposalId,
+        option,
+      });
       setError((err as Error).message);
     } finally {
       setVoting(false);
@@ -139,30 +152,30 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({
   const getStatusIcon = (status: ProposalStatus) => {
     switch (status) {
       case ProposalStatus.SUCCEEDED:
-        return <CheckCircle className="w-5 h-5" />;
+        return <CheckCircle className='w-5 h-5' />;
       case ProposalStatus.DEFEATED:
-        return <XCircle className="w-5 h-5" />;
+        return <XCircle className='w-5 h-5' />;
       case ProposalStatus.ACTIVE:
-        return <Clock className="w-5 h-5" />;
+        return <Clock className='w-5 h-5' />;
       default:
-        return <AlertTriangle className="w-5 h-5" />;
+        return <AlertTriangle className='w-5 h-5' />;
     }
   };
 
   const getTypeIcon = (type: ProposalType) => {
     switch (type) {
       case ProposalType.PROJECT_FUNDING:
-        return <DollarSign className="w-5 h-5" />;
+        return <DollarSign className='w-5 h-5' />;
       case ProposalType.MILESTONE_APPROVAL:
-        return <Target className="w-5 h-5" />;
+        return <Target className='w-5 h-5' />;
       case ProposalType.PARAMETER_CHANGE:
-        return <Settings className="w-5 h-5" />;
+        return <Settings className='w-5 h-5' />;
       case ProposalType.TREASURY_ALLOCATION:
-        return <DollarSign className="w-5 h-5" />;
+        return <DollarSign className='w-5 h-5' />;
       case ProposalType.EMERGENCY_ACTION:
-        return <Zap className="w-5 h-5" />;
+        return <Zap className='w-5 h-5' />;
       default:
-        return <AlertTriangle className="w-5 h-5" />;
+        return <AlertTriangle className='w-5 h-5' />;
     }
   };
 
@@ -213,90 +226,101 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className='flex items-center justify-center p-8'>
+        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
       </div>
     );
   }
 
   if (error || !proposal) {
     return (
-      <div className="space-y-4">
+      <div className='space-y-4'>
         {onBack && (
-          <Button variant="outline" onClick={onBack} className="flex items-center gap-2">
-            <ArrowLeft className="w-4 h-4" />
+          <Button
+            variant='outline'
+            onClick={onBack}
+            className='flex items-center gap-2'
+          >
+            <ArrowLeft className='w-4 h-4' />
             Back to Governance
           </Button>
         )}
         <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            {error || 'Proposal not found'}
-          </AlertDescription>
+          <AlertTriangle className='h-4 w-4' />
+          <AlertDescription>{error || 'Proposal not found'}</AlertDescription>
         </Alert>
       </div>
     );
   }
 
-  const canVote = proposal.status === ProposalStatus.ACTIVE &&
-                   walletAddress &&
-                   !voterInfo?.hasVoted &&
-                   new Date() < proposal.endTime;
+  const canVote =
+    proposal.status === ProposalStatus.ACTIVE &&
+    walletAddress &&
+    !voterInfo?.hasVoted &&
+    new Date() < proposal.endTime;
 
   return (
-    <div className="space-y-6">
+    <div className='space-y-6'>
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className='flex items-center gap-4'>
         {onBack && (
-          <Button variant="outline" onClick={onBack} className="flex items-center gap-2">
-            <ArrowLeft className="w-4 h-4" />
+          <Button
+            variant='outline'
+            onClick={onBack}
+            className='flex items-center gap-2'
+          >
+            <ArrowLeft className='w-4 h-4' />
             Back
           </Button>
         )}
-        <div className="flex items-center gap-3">
+        <div className='flex items-center gap-3'>
           {getTypeIcon(proposal.type)}
           <div>
-            <h1 className="text-2xl font-bold">{proposal.title}</h1>
-            <p className="text-gray-600">Proposal #{proposal.id.slice(-8)}</p>
+            <h1 className='text-2xl font-bold'>{proposal.title}</h1>
+            <p className='text-gray-600'>Proposal #{proposal.id.slice(-8)}</p>
           </div>
         </div>
       </div>
 
       {/* Status and Type */}
-      <div className="flex items-center gap-2">
+      <div className='flex items-center gap-2'>
         <Badge className={getStatusColor(proposal.status)}>
           {getStatusIcon(proposal.status)}
-          <span className="ml-1">{proposal.status}</span>
+          <span className='ml-1'>{proposal.status}</span>
         </Badge>
-        <Badge variant="outline">
+        <Badge variant='outline'>
           {getTypeIcon(proposal.type)}
-          <span className="ml-1">{getTypeLabel(proposal.type)}</span>
+          <span className='ml-1'>{getTypeLabel(proposal.type)}</span>
         </Badge>
         {proposal.tags.map((tag, index) => (
-          <Badge key={index} variant="secondary">{tag}</Badge>
+          <Badge key={index} variant='secondary'>
+            {tag}
+          </Badge>
         ))}
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
         {/* Proposal Details */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className='lg:col-span-2 space-y-6'>
           {/* Description */}
           <Card>
             <CardHeader>
               <CardTitle>Description</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-700 whitespace-pre-wrap">{proposal.description}</p>
+              <p className='text-gray-700 whitespace-pre-wrap'>
+                {proposal.description}
+              </p>
               {proposal.discussionUrl && (
-                <div className="mt-4">
+                <div className='mt-4'>
                   <a
                     href={proposal.discussionUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800"
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='inline-flex items-center gap-2 text-blue-600 hover:text-blue-800'
                   >
-                    <ExternalLink className="w-4 h-4" />
+                    <ExternalLink className='w-4 h-4' />
                     Discussion Link
                   </a>
                 </div>
@@ -314,53 +338,77 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({
               <CardDescription>
                 Total voting power: {proposal.totalVotingPower.toLocaleString()}
                 {proposal.quorumReached && (
-                  <span className="text-green-600 ml-2">✓ Quorum reached</span>
+                  <span className='text-green-600 ml-2'>✓ Quorum reached</span>
                 )}
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className='space-y-4'>
               {/* Yes Votes */}
               <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                    Yes ({getVotePercentage(proposal.votes.yes, proposal.totalVotingPower)}%)
+                <div className='flex justify-between text-sm mb-1'>
+                  <span className='flex items-center gap-2'>
+                    <CheckCircle className='w-4 h-4 text-green-600' />
+                    Yes (
+                    {getVotePercentage(
+                      proposal.votes.yes,
+                      proposal.totalVotingPower
+                    )}
+                    %)
                   </span>
                   <span>{proposal.votes.yes.toLocaleString()}</span>
                 </div>
                 <Progress
-                  value={getVotePercentage(proposal.votes.yes, proposal.totalVotingPower)}
-                  className="h-2"
+                  value={getVotePercentage(
+                    proposal.votes.yes,
+                    proposal.totalVotingPower
+                  )}
+                  className='h-2'
                 />
               </div>
 
               {/* No Votes */}
               <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="flex items-center gap-2">
-                    <XCircle className="w-4 h-4 text-red-600" />
-                    No ({getVotePercentage(proposal.votes.no, proposal.totalVotingPower)}%)
+                <div className='flex justify-between text-sm mb-1'>
+                  <span className='flex items-center gap-2'>
+                    <XCircle className='w-4 h-4 text-red-600' />
+                    No (
+                    {getVotePercentage(
+                      proposal.votes.no,
+                      proposal.totalVotingPower
+                    )}
+                    %)
                   </span>
                   <span>{proposal.votes.no.toLocaleString()}</span>
                 </div>
                 <Progress
-                  value={getVotePercentage(proposal.votes.no, proposal.totalVotingPower)}
-                  className="h-2"
+                  value={getVotePercentage(
+                    proposal.votes.no,
+                    proposal.totalVotingPower
+                  )}
+                  className='h-2'
                 />
               </div>
 
               {/* Abstain Votes */}
               <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-gray-600" />
-                    Abstain ({getVotePercentage(proposal.votes.abstain, proposal.totalVotingPower)}%)
+                <div className='flex justify-between text-sm mb-1'>
+                  <span className='flex items-center gap-2'>
+                    <AlertTriangle className='w-4 h-4 text-gray-600' />
+                    Abstain (
+                    {getVotePercentage(
+                      proposal.votes.abstain,
+                      proposal.totalVotingPower
+                    )}
+                    %)
                   </span>
                   <span>{proposal.votes.abstain.toLocaleString()}</span>
                 </div>
                 <Progress
-                  value={getVotePercentage(proposal.votes.abstain, proposal.totalVotingPower)}
-                  className="h-2"
+                  value={getVotePercentage(
+                    proposal.votes.abstain,
+                    proposal.totalVotingPower
+                  )}
+                  className='h-2'
                 />
               </div>
             </CardContent>
@@ -368,38 +416,42 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
+        <div className='space-y-6'>
           {/* Timing */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
+              <CardTitle className='flex items-center gap-2'>
+                <Calendar className='w-5 h-5' />
                 Timeline
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className='space-y-3'>
               <div>
-                <p className="text-sm text-gray-600">Created</p>
-                <p className="font-medium">{formatDate(proposal.createdAt)}</p>
+                <p className='text-sm text-gray-600'>Created</p>
+                <p className='font-medium'>{formatDate(proposal.createdAt)}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Voting Starts</p>
-                <p className="font-medium">{formatDate(proposal.startTime)}</p>
+                <p className='text-sm text-gray-600'>Voting Starts</p>
+                <p className='font-medium'>{formatDate(proposal.startTime)}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Voting Ends</p>
-                <p className="font-medium">{formatDate(proposal.endTime)}</p>
+                <p className='text-sm text-gray-600'>Voting Ends</p>
+                <p className='font-medium'>{formatDate(proposal.endTime)}</p>
               </div>
               {proposal.status === ProposalStatus.ACTIVE && (
                 <div>
-                  <p className="text-sm text-gray-600">Time Remaining</p>
-                  <p className="font-medium text-blue-600">{formatTimeRemaining(proposal.endTime)}</p>
+                  <p className='text-sm text-gray-600'>Time Remaining</p>
+                  <p className='font-medium text-blue-600'>
+                    {formatTimeRemaining(proposal.endTime)}
+                  </p>
                 </div>
               )}
               {proposal.executedAt && (
                 <div>
-                  <p className="text-sm text-gray-600">Executed</p>
-                  <p className="font-medium">{formatDate(proposal.executedAt)}</p>
+                  <p className='text-sm text-gray-600'>Executed</p>
+                  <p className='font-medium'>
+                    {formatDate(proposal.executedAt)}
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -408,14 +460,15 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({
           {/* Proposer */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="w-5 h-5" />
+              <CardTitle className='flex items-center gap-2'>
+                <User className='w-5 h-5' />
                 Proposer
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="font-mono text-sm">
-                {proposal.proposerAddress.slice(0, 4)}...{proposal.proposerAddress.slice(-4)}
+              <p className='font-mono text-sm'>
+                {proposal.proposerAddress.slice(0, 4)}...
+                {proposal.proposerAddress.slice(-4)}
               </p>
             </CardContent>
           </Card>
@@ -426,23 +479,31 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({
               <CardHeader>
                 <CardTitle>Your Voting Power</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm">Voting Power:</span>
-                  <span className="font-medium">{voterInfo.votingPower.toLocaleString()}</span>
+              <CardContent className='space-y-2'>
+                <div className='flex justify-between'>
+                  <span className='text-sm'>Voting Power:</span>
+                  <span className='font-medium'>
+                    {voterInfo.votingPower.toLocaleString()}
+                  </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Reputation:</span>
-                  <span className="font-medium">{voterInfo.reputation}</span>
+                <div className='flex justify-between'>
+                  <span className='text-sm'>Reputation:</span>
+                  <span className='font-medium'>{voterInfo.reputation}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Token Balance:</span>
-                  <span className="font-medium">{voterInfo.tokenBalance.toLocaleString()}</span>
+                <div className='flex justify-between'>
+                  <span className='text-sm'>Token Balance:</span>
+                  <span className='font-medium'>
+                    {voterInfo.tokenBalance.toLocaleString()}
+                  </span>
                 </div>
                 {voterInfo.hasVoted && (
-                  <div className="flex justify-between">
-                    <span className="text-sm">Your Vote:</span>
-                    <Badge variant={voterInfo.voteOption === 'yes' ? 'default' : 'secondary'}>
+                  <div className='flex justify-between'>
+                    <span className='text-sm'>Your Vote:</span>
+                    <Badge
+                      variant={
+                        voterInfo.voteOption === 'yes' ? 'default' : 'secondary'
+                      }
+                    >
                       {voterInfo.voteOption}
                     </Badge>
                   </div>
@@ -474,14 +535,16 @@ function renderTypeSpecificDetails(proposal: Proposal) {
             <CardTitle>Funding Request</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between">
+            <div className='space-y-2'>
+              <div className='flex justify-between'>
                 <span>Project ID:</span>
-                <span className="font-mono">{proposal.projectId}</span>
+                <span className='font-mono'>{proposal.projectId}</span>
               </div>
-              <div className="flex justify-between">
+              <div className='flex justify-between'>
                 <span>Amount Requested:</span>
-                <span className="font-medium">{proposal.fundingAmount} SOL</span>
+                <span className='font-medium'>
+                  {proposal.fundingAmount} SOL
+                </span>
               </div>
             </div>
           </CardContent>
@@ -495,14 +558,14 @@ function renderTypeSpecificDetails(proposal: Proposal) {
             <CardTitle>Milestone Approval</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between">
+            <div className='space-y-2'>
+              <div className='flex justify-between'>
                 <span>Project ID:</span>
-                <span className="font-mono">{proposal.projectId}</span>
+                <span className='font-mono'>{proposal.projectId}</span>
               </div>
-              <div className="flex justify-between">
+              <div className='flex justify-between'>
                 <span>Milestone ID:</span>
-                <span className="font-mono">{proposal.milestoneId}</span>
+                <span className='font-mono'>{proposal.milestoneId}</span>
               </div>
             </div>
           </CardContent>
@@ -516,19 +579,21 @@ function renderTypeSpecificDetails(proposal: Proposal) {
             <CardTitle>Parameter Change</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between">
+            <div className='space-y-2'>
+              <div className='flex justify-between'>
                 <span>Target Contract:</span>
-                <span className="font-mono text-sm">{proposal.targetContract?.toString()}</span>
+                <span className='font-mono text-sm'>
+                  {proposal.targetContract?.toString()}
+                </span>
               </div>
-              <div className="flex justify-between">
+              <div className='flex justify-between'>
                 <span>Target Function:</span>
-                <span className="font-mono">{proposal.targetFunction}</span>
+                <span className='font-mono'>{proposal.targetFunction}</span>
               </div>
               {proposal.parameters && proposal.parameters.length > 0 && (
                 <div>
-                  <span className="block mb-1">Parameters:</span>
-                  <pre className="bg-gray-100 p-2 rounded text-sm overflow-x-auto">
+                  <span className='block mb-1'>Parameters:</span>
+                  <pre className='bg-gray-100 p-2 rounded text-sm overflow-x-auto'>
                     {JSON.stringify(proposal.parameters, null, 2)}
                   </pre>
                 </div>
@@ -545,9 +610,9 @@ function renderTypeSpecificDetails(proposal: Proposal) {
             <CardTitle>Treasury Allocation</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex justify-between">
+            <div className='flex justify-between'>
               <span>Amount:</span>
-              <span className="font-medium">{proposal.fundingAmount} SOL</span>
+              <span className='font-medium'>{proposal.fundingAmount} SOL</span>
             </div>
           </CardContent>
         </Card>
@@ -557,13 +622,14 @@ function renderTypeSpecificDetails(proposal: Proposal) {
       return (
         <Card>
           <CardHeader>
-            <CardTitle className="text-red-600">Emergency Action</CardTitle>
+            <CardTitle className='text-red-600'>Emergency Action</CardTitle>
           </CardHeader>
           <CardContent>
             <Alert>
-              <AlertTriangle className="h-4 w-4" />
+              <AlertTriangle className='h-4 w-4' />
               <AlertDescription>
-                This is an emergency proposal that requires immediate attention and has shorter voting periods.
+                This is an emergency proposal that requires immediate attention
+                and has shorter voting periods.
               </AlertDescription>
             </Alert>
           </CardContent>

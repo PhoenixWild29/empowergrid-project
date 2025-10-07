@@ -138,7 +138,10 @@ export class UserRepository {
   /**
    * Update user statistics
    */
-  async updateStats(userId: string, stats: Partial<UserStats>): Promise<UserStats> {
+  async updateStats(
+    userId: string,
+    stats: Partial<UserStats>
+  ): Promise<UserStats> {
     try {
       return await prisma.userStats.update({
         where: { userId },
@@ -167,7 +170,10 @@ export class UserRepository {
   /**
    * Check if username is available
    */
-  async isUsernameAvailable(username: string, excludeUserId?: string): Promise<boolean> {
+  async isUsernameAvailable(
+    username: string,
+    excludeUserId?: string
+  ): Promise<boolean> {
     try {
       const existingUser = await prisma.user.findFirst({
         where: {
@@ -186,7 +192,10 @@ export class UserRepository {
   /**
    * Check if email is available
    */
-  async isEmailAvailable(email: string, excludeUserId?: string): Promise<boolean> {
+  async isEmailAvailable(
+    email: string,
+    excludeUserId?: string
+  ): Promise<boolean> {
     try {
       const existingUser = await prisma.user.findFirst({
         where: {

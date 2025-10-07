@@ -21,14 +21,29 @@ import { prisma } from '../../lib/prisma';
 
 // Get references to the mocked functions
 const mockPrisma = prisma as jest.Mocked<typeof prisma>;
-const mockUserFindUnique = mockPrisma.user.findUnique as jest.MockedFunction<typeof mockPrisma.user.findUnique>;
-const mockUserFindFirst = mockPrisma.user.findFirst as jest.MockedFunction<typeof mockPrisma.user.findFirst>;
-const mockUserCreate = mockPrisma.user.create as jest.MockedFunction<typeof mockPrisma.user.create>;
-const mockUserUpdate = mockPrisma.user.update as jest.MockedFunction<typeof mockPrisma.user.update>;
-const mockUserDelete = mockPrisma.user.delete as jest.MockedFunction<typeof mockPrisma.user.delete>;
-const mockUserFindMany = mockPrisma.user.findMany as jest.MockedFunction<typeof mockPrisma.user.findMany>;
-const mockUserStatsUpdate = mockPrisma.userStats.update as jest.MockedFunction<typeof mockPrisma.userStats.update>;
-const mockUserStatsFindUnique = mockPrisma.userStats.findUnique as jest.MockedFunction<typeof mockPrisma.userStats.findUnique>;
+const mockUserFindUnique = mockPrisma.user.findUnique as jest.MockedFunction<
+  typeof mockPrisma.user.findUnique
+>;
+const mockUserFindFirst = mockPrisma.user.findFirst as jest.MockedFunction<
+  typeof mockPrisma.user.findFirst
+>;
+const mockUserCreate = mockPrisma.user.create as jest.MockedFunction<
+  typeof mockPrisma.user.create
+>;
+const mockUserUpdate = mockPrisma.user.update as jest.MockedFunction<
+  typeof mockPrisma.user.update
+>;
+const mockUserDelete = mockPrisma.user.delete as jest.MockedFunction<
+  typeof mockPrisma.user.delete
+>;
+const mockUserFindMany = mockPrisma.user.findMany as jest.MockedFunction<
+  typeof mockPrisma.user.findMany
+>;
+const mockUserStatsUpdate = mockPrisma.userStats.update as jest.MockedFunction<
+  typeof mockPrisma.userStats.update
+>;
+const mockUserStatsFindUnique = mockPrisma.userStats
+  .findUnique as jest.MockedFunction<typeof mockPrisma.userStats.findUnique>;
 
 describe('UserRepository', () => {
   let userRepository: UserRepository;
@@ -84,7 +99,9 @@ describe('UserRepository', () => {
     test('should throw error on database failure', async () => {
       mockUserFindUnique.mockRejectedValue(new Error('Database error'));
 
-      await expect(userRepository.findByWalletAddress('test')).rejects.toThrow('Failed to find user');
+      await expect(userRepository.findByWalletAddress('test')).rejects.toThrow(
+        'Failed to find user'
+      );
     });
   });
 
@@ -143,13 +160,17 @@ describe('UserRepository', () => {
     });
 
     test('should throw error on creation failure', async () => {
-      mockUserCreate.mockRejectedValue(new Error('Unique constraint violation'));
+      mockUserCreate.mockRejectedValue(
+        new Error('Unique constraint violation')
+      );
 
-      await expect(userRepository.create({
-        walletAddress: 'test',
-        username: 'test',
-        role: 'GUEST',
-      })).rejects.toThrow('Failed to create user');
+      await expect(
+        userRepository.create({
+          walletAddress: 'test',
+          username: 'test',
+          role: 'GUEST',
+        })
+      ).rejects.toThrow('Failed to create user');
     });
   });
 

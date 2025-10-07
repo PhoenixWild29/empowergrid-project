@@ -1,17 +1,26 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { governanceService } from '../../../lib/services/governanceService';
 import { logger } from '../../../lib/logging/logger';
-import { errorTracker, ErrorSeverity, ErrorCategory } from '../../../lib/monitoring/errorTracker';
+import {
+  errorTracker,
+  ErrorSeverity,
+  ErrorCategory,
+} from '../../../lib/monitoring/errorTracker';
 import { CastVoteRequest, VoterInfo } from '../../../types/governance';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   if (req.method !== 'POST' && req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
     // TODO: Add authentication when auth service is available
-    const walletAddress = req.headers['x-wallet-address'] as string || req.query.walletAddress as string;
+    const walletAddress =
+      (req.headers['x-wallet-address'] as string) ||
+      (req.query.walletAddress as string);
 
     if (req.method === 'POST') {
       if (!walletAddress) {
@@ -28,7 +37,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
       return await handleGetVoterInfo(req, res, proposalId, walletAddress);
     }
-
   } catch (error) {
     logger.error('Governance votes API error', {
       error: (error as Error).message,
@@ -48,18 +56,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
-async function handleCastVote(req: NextApiRequest, res: NextApiResponse, voterAddress: string) {
+async function handleCastVote(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  voterAddress: string
+) {
   try {
     const request: CastVoteRequest = req.body;
 
     // Validate required fields
     if (!request.proposalId || !request.option) {
-      return res.status(400).json({ error: 'Missing required fields: proposalId and option' });
+      return res
+        .status(400)
+        .json({ error: 'Missing required fields: proposalId and option' });
     }
 
     // Validate vote option
     if (!['yes', 'no', 'abstain'].includes(request.option)) {
-      return res.status(400).json({ error: 'Invalid vote option. Must be yes, no, or abstain' });
+      return res
+        .status(400)
+        .json({ error: 'Invalid vote option. Must be yes, no, or abstain' });
     }
 
     const vote = await governanceService.castVote(request, voterAddress);
@@ -81,7 +97,10 @@ async function handleGetVoterInfo(
   voterAddress: string
 ) {
   try {
-    const voterInfo = await governanceService.getVoterInfo(proposalId, voterAddress);
+    const voterInfo = await governanceService.getVoterInfo(
+      proposalId,
+      voterAddress
+    );
 
     if (!voterInfo) {
       return res.status(404).json({ error: 'Voter info not found' });
@@ -92,7 +111,11 @@ async function handleGetVoterInfo(
       data: voterInfo,
     });
   } catch (error) {
-    logger.error('Failed to get voter info', { error: (error as Error).message, proposalId, voterAddress });
+    logger.error('Failed to get voter info', {
+      error: (error as Error).message,
+      proposalId,
+      voterAddress,
+    });
     return res.status(500).json({ error: 'Failed to get voter info' });
   }
 }

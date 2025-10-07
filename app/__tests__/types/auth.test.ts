@@ -77,17 +77,27 @@ describe('Authentication Types', () => {
 
   describe('hasPermission function', () => {
     test('should return true for valid permissions', () => {
-      expect(hasPermission(UserRole.CREATOR, Permission.CREATE_PROJECT)).toBe(true);
-      expect(hasPermission(UserRole.ADMIN, Permission.DELETE_PROJECT)).toBe(true);
+      expect(hasPermission(UserRole.CREATOR, Permission.CREATE_PROJECT)).toBe(
+        true
+      );
+      expect(hasPermission(UserRole.ADMIN, Permission.DELETE_PROJECT)).toBe(
+        true
+      );
     });
 
     test('should return false for invalid permissions', () => {
-      expect(hasPermission(UserRole.GUEST, Permission.CREATE_PROJECT)).toBe(false);
-      expect(hasPermission(UserRole.FUNDER, Permission.DELETE_PROJECT)).toBe(false);
+      expect(hasPermission(UserRole.GUEST, Permission.CREATE_PROJECT)).toBe(
+        false
+      );
+      expect(hasPermission(UserRole.FUNDER, Permission.DELETE_PROJECT)).toBe(
+        false
+      );
     });
 
     test('should return false for non-existent permissions', () => {
-      expect(hasPermission(UserRole.ADMIN, 'non_existent' as Permission)).toBe(false);
+      expect(hasPermission(UserRole.ADMIN, 'non_existent' as Permission)).toBe(
+        false
+      );
     });
   });
 
@@ -113,24 +123,34 @@ describe('Authentication Types', () => {
   });
 
   describe('canEditProject function', () => {
-    const mockProjectCreator = new PublicKey('11111111111111111111111111111112');
+    const mockProjectCreator = new PublicKey(
+      '11111111111111111111111111111112'
+    );
     const mockUserWallet = new PublicKey('22222222222222222222222222222222');
     const mockOtherWallet = new PublicKey('33333333333333333333333333333333');
 
     test('should allow project creator to edit their own project', () => {
-      expect(canEditProject(UserRole.FUNDER, mockProjectCreator, mockProjectCreator)).toBe(true);
+      expect(
+        canEditProject(UserRole.FUNDER, mockProjectCreator, mockProjectCreator)
+      ).toBe(true);
     });
 
     test('should allow admin to edit any project', () => {
-      expect(canEditProject(UserRole.ADMIN, mockProjectCreator, mockOtherWallet)).toBe(true);
+      expect(
+        canEditProject(UserRole.ADMIN, mockProjectCreator, mockOtherWallet)
+      ).toBe(true);
     });
 
     test('should not allow non-creator non-admin to edit project', () => {
-      expect(canEditProject(UserRole.FUNDER, mockProjectCreator, mockOtherWallet)).toBe(false);
+      expect(
+        canEditProject(UserRole.FUNDER, mockProjectCreator, mockOtherWallet)
+      ).toBe(false);
     });
 
     test('should return false when user wallet is not provided', () => {
-      expect(canEditProject(UserRole.CREATOR, mockProjectCreator, undefined)).toBe(false);
+      expect(
+        canEditProject(UserRole.CREATOR, mockProjectCreator, undefined)
+      ).toBe(false);
     });
   });
 

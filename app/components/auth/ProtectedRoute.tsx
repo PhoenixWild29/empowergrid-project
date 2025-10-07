@@ -37,7 +37,12 @@ export default function ProtectedRoute({
     }
 
     // Check role requirements
-    if (requiredRole && user && user.role !== requiredRole && user.role !== UserRole.ADMIN) {
+    if (
+      requiredRole &&
+      user &&
+      user.role !== requiredRole &&
+      user.role !== UserRole.ADMIN
+    ) {
       router.push('/unauthorized');
       return;
     }
@@ -62,11 +67,11 @@ export default function ProtectedRoute({
   // Show loading spinner while checking authentication
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className='min-h-screen flex items-center justify-center'>
         <div
-          role="status"
-          aria-label="Loading"
-          className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"
+          role='status'
+          aria-label='Loading'
+          className='animate-spin rounded-full h-12 w-12 border-b-2 border-green-600'
         ></div>
       </div>
     );
@@ -81,7 +86,12 @@ export default function ProtectedRoute({
     return null;
   }
 
-  if (requiredRole && user && user.role !== requiredRole && user.role !== UserRole.ADMIN) {
+  if (
+    requiredRole &&
+    user &&
+    user.role !== requiredRole &&
+    user.role !== UserRole.ADMIN
+  ) {
     return null;
   }
 

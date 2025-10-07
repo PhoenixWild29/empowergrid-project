@@ -6,12 +6,16 @@ interface TabsProps {
   className?: string;
 }
 
-export const Tabs: React.FC<TabsProps> = ({ children, defaultValue, className = '' }) => {
+export const Tabs: React.FC<TabsProps> = ({
+  children,
+  defaultValue,
+  className = '',
+}) => {
   const [activeTab, setActiveTab] = useState(defaultValue);
 
   return (
     <div className={className}>
-      {React.Children.map(children, (child) =>
+      {React.Children.map(children, child =>
         React.isValidElement(child)
           ? React.cloneElement(child, { activeTab, setActiveTab })
           : child
@@ -25,7 +29,10 @@ interface TabsListProps {
   className?: string;
 }
 
-export const TabsList: React.FC<TabsListProps> = ({ children, className = '' }) => {
+export const TabsList: React.FC<TabsListProps> = ({
+  children,
+  className = '',
+}) => {
   return (
     <div className={`flex space-x-1 bg-gray-100 p-1 rounded-lg ${className}`}>
       {children}
@@ -46,7 +53,7 @@ export const TabsTrigger: React.FC<TabsTriggerProps> = ({
   value,
   activeTab,
   setActiveTab,
-  className = ''
+  className = '',
 }) => {
   const isActive = activeTab === value;
 
@@ -75,15 +82,11 @@ export const TabsContent: React.FC<TabsContentProps> = ({
   children,
   value,
   activeTab,
-  className = ''
+  className = '',
 }) => {
   if (activeTab !== value) {
     return null;
   }
 
-  return (
-    <div className={className}>
-      {children}
-    </div>
-  );
+  return <div className={className}>{children}</div>;
 };

@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+
+# Production builds
+.next/
+out/
+build/
+dist/
+
+# Generated files
+idl/
+programs/*/src/
+scripts/gen-blink-qrs.js
+
+# Environment variables
+.env*
+
+# Logs
+*.log
+
+# Runtime data
+*.pid
+*.seed
+
+# Coverage
+coverage/
+
+# Cache
+.eslintcache
+*.tsbuildinfo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Lock files
+package-lock.json
+yarn.lock

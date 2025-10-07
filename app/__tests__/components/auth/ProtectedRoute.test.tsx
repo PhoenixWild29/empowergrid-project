@@ -1,7 +1,11 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { useRouter } from 'next/router';
 import ProtectedRoute from '../../../components/auth/ProtectedRoute';
-import { AuthProvider, fetchUserProfile, validateSession } from '../../../contexts/AuthContext';
+import {
+  AuthProvider,
+  fetchUserProfile,
+  validateSession,
+} from '../../../contexts/AuthContext';
 import { UserRole, Permission } from '../../../types/auth';
 
 // Mock Next.js router
@@ -20,7 +24,7 @@ jest.mock('next/router', () => ({
 const { PublicKey } = require('@solana/web3.js');
 
 jest.mock('@solana/web3.js', () => ({
-  PublicKey: jest.fn().mockImplementation((value) => ({
+  PublicKey: jest.fn().mockImplementation(value => ({
     toString: () => value || 'mock-public-key',
     equals: jest.fn(),
     toBase58: () => value || 'mock-public-key',
@@ -41,7 +45,7 @@ jest.mock('../../../contexts/AuthContext', () => {
 
 // Test component
 function TestContent() {
-  return <div data-testid="protected-content">Protected Content</div>;
+  return <div data-testid='protected-content'>Protected Content</div>;
 }
 
 describe('ProtectedRoute', () => {
@@ -71,7 +75,7 @@ describe('ProtectedRoute', () => {
     test('should redirect to custom path when specified', async () => {
       render(
         <AuthProvider>
-          <ProtectedRoute fallbackPath="/custom-login">
+          <ProtectedRoute fallbackPath='/custom-login'>
             <TestContent />
           </ProtectedRoute>
         </AuthProvider>
@@ -96,7 +100,7 @@ describe('ProtectedRoute', () => {
 
       const mockUser = {
         id: 'test-user',
-        walletAddress: { toString: () => 'test-wallet' },
+        walletAddress: new PublicKey('test-wallet'),
         role: UserRole.FUNDER,
         reputation: 0,
         createdAt: new Date(),
@@ -113,8 +117,9 @@ describe('ProtectedRoute', () => {
       // Mock localStorage
       Object.defineProperty(window, 'localStorage', {
         value: {
-          getItem: jest.fn((key) => {
-            if (key === 'empowergrid_session') return JSON.stringify(mockSession);
+          getItem: jest.fn(key => {
+            if (key === 'empowergrid_session')
+              return JSON.stringify(mockSession);
             if (key === 'empowergrid_user') return JSON.stringify(mockUser);
             return null;
           }),
@@ -126,8 +131,9 @@ describe('ProtectedRoute', () => {
       });
 
       // Mock the fetchUserProfile function
-      (fetchUserProfile as jest.MockedFunction<typeof fetchUserProfile>)
-        .mockResolvedValue(mockUser);
+      (
+        fetchUserProfile as jest.MockedFunction<typeof fetchUserProfile>
+      ).mockResolvedValue(mockUser);
 
       render(
         <AuthProvider>
@@ -175,8 +181,9 @@ describe('ProtectedRoute', () => {
       // Mock localStorage
       Object.defineProperty(window, 'localStorage', {
         value: {
-          getItem: jest.fn((key) => {
-            if (key === 'empowergrid_session') return JSON.stringify(mockSession);
+          getItem: jest.fn(key => {
+            if (key === 'empowergrid_session')
+              return JSON.stringify(mockSession);
             if (key === 'empowergrid_user') return JSON.stringify(mockUser);
             return null;
           }),
@@ -231,8 +238,9 @@ describe('ProtectedRoute', () => {
       // Mock localStorage
       Object.defineProperty(window, 'localStorage', {
         value: {
-          getItem: jest.fn((key) => {
-            if (key === 'empowergrid_session') return JSON.stringify(mockSession);
+          getItem: jest.fn(key => {
+            if (key === 'empowergrid_session')
+              return JSON.stringify(mockSession);
             if (key === 'empowergrid_user') return JSON.stringify(mockUser);
             return null;
           }),
@@ -290,8 +298,9 @@ describe('ProtectedRoute', () => {
       // Mock localStorage
       Object.defineProperty(window, 'localStorage', {
         value: {
-          getItem: jest.fn((key) => {
-            if (key === 'empowergrid_session') return JSON.stringify(mockSession);
+          getItem: jest.fn(key => {
+            if (key === 'empowergrid_session')
+              return JSON.stringify(mockSession);
             if (key === 'empowergrid_user') return JSON.stringify(mockUser);
             return null;
           }),
@@ -348,8 +357,9 @@ describe('ProtectedRoute', () => {
       // Mock localStorage
       Object.defineProperty(window, 'localStorage', {
         value: {
-          getItem: jest.fn((key) => {
-            if (key === 'empowergrid_session') return JSON.stringify(mockSession);
+          getItem: jest.fn(key => {
+            if (key === 'empowergrid_session')
+              return JSON.stringify(mockSession);
             if (key === 'empowergrid_user') return JSON.stringify(mockUser);
             return null;
           }),
@@ -404,8 +414,9 @@ describe('ProtectedRoute', () => {
       // Mock localStorage
       Object.defineProperty(window, 'localStorage', {
         value: {
-          getItem: jest.fn((key) => {
-            if (key === 'empowergrid_session') return JSON.stringify(mockSession);
+          getItem: jest.fn(key => {
+            if (key === 'empowergrid_session')
+              return JSON.stringify(mockSession);
             if (key === 'empowergrid_user') return JSON.stringify(mockUser);
             return null;
           }),

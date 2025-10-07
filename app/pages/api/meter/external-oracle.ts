@@ -30,14 +30,17 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
         metadata: {
           methodology: 'satellite-imaging',
           accuracy: '±2%',
-          lastCalibration: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 24 hours ago
+          lastCalibration: new Date(
+            Date.now() - 24 * 60 * 60 * 1000
+          ).toISOString(), // 24 hours ago
         },
       };
 
       res.status(200).json(reading);
     } catch (error) {
       // Simulate occasional external service failures
-      if (Math.random() < 0.05) { // 5% failure rate
+      if (Math.random() < 0.05) {
+        // 5% failure rate
         res.status(503).json({
           error: 'External service temporarily unavailable',
           retryAfter: 30,

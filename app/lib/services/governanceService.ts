@@ -19,7 +19,11 @@ import {
 } from '../../types/governance';
 import { databaseService } from './databaseService';
 import { logger } from '../logging/logger';
-import { errorTracker, ErrorSeverity, ErrorCategory } from '../monitoring/errorTracker';
+import {
+  errorTracker,
+  ErrorSeverity,
+  ErrorCategory,
+} from '../monitoring/errorTracker';
 
 export class GovernanceService {
   private static instance: GovernanceService;
@@ -62,12 +66,18 @@ export class GovernanceService {
   }
 
   // Proposal management
-  async createProposal(request: CreateProposalRequest, proposerAddress: string): Promise<Proposal> {
+  async createProposal(
+    request: CreateProposalRequest,
+    proposerAddress: string
+  ): Promise<Proposal> {
     try {
       // Validate proposer has sufficient voting power
-      const proposerVotingPower = await this.calculateVotingPower(proposerAddress);
+      const proposerVotingPower =
+        await this.calculateVotingPower(proposerAddress);
       if (proposerVotingPower < this.config.proposalThreshold) {
-        throw new Error(`Insufficient voting power: ${proposerVotingPower} < ${this.config.proposalThreshold}`);
+        throw new Error(
+          `Insufficient voting power: ${proposerVotingPower} < ${this.config.proposalThreshold}`
+        );
       }
 
       const proposal: Proposal = {
@@ -108,7 +118,9 @@ export class GovernanceService {
       await this.storeProposal(proposal);
 
       // Emit event
-      await this.emitEvent(GovernanceEventType.PROPOSAL_CREATED, proposal.id, { proposal });
+      await this.emitEvent(GovernanceEventType.PROPOSAL_CREATED, proposal.id, {
+        proposal,
+      });
 
       // Create notification for all users
       await this.createNotificationForAllUsers({
@@ -127,12 +139,19 @@ export class GovernanceService {
 
       return proposal;
     } catch (error) {
-      logger.error('Failed to create proposal', { error: (error as Error).message, request });
+      logger.error('Failed to create proposal', {
+        error: (error as Error).message,
+        request,
+      });
       throw error;
     }
   }
 
-  async updateProposal(proposalId: string, updates: UpdateProposalRequest, updaterAddress: string): Promise<Proposal> {
+  async updateProposal(
+    proposalId: string,
+    updates: UpdateProposalRequest,
+    updaterAddress: string
+  ): Promise<Proposal> {
     try {
       const proposal = await this.getProposal(proposalId);
       if (!proposal) {
@@ -144,7 +163,10 @@ export class GovernanceService {
         throw new Error('Only proposer can update proposal');
       }
 
-      if (proposal.status !== ProposalStatus.DRAFT && proposal.status !== ProposalStatus.ACTIVE) {
+      if (
+        proposal.status !== ProposalStatus.DRAFT &&
+        proposal.status !== ProposalStatus.ACTIVE
+      ) {
         throw new Error('Cannot update proposal in current status');
       }
 
@@ -152,16 +174,24 @@ export class GovernanceService {
 
       await this.storeProposal(proposal);
 
-      await this.emitEvent(GovernanceEventType.PROPOSAL_UPDATED, proposalId, { updates });
+      await this.emitEvent(GovernanceEventType.PROPOSAL_UPDATED, proposalId, {
+        updates,
+      });
 
       return proposal;
     } catch (error) {
-      logger.error('Failed to update proposal', { error: (error as Error).message, proposalId });
+      logger.error('Failed to update proposal', {
+        error: (error as Error).message,
+        proposalId,
+      });
       throw error;
     }
   }
 
-  async cancelProposal(proposalId: string, cancellerAddress: string): Promise<void> {
+  async cancelProposal(
+    proposalId: string,
+    cancellerAddress: string
+  ): Promise<void> {
     try {
       const proposal = await this.getProposal(proposalId);
       if (!proposal) {
@@ -181,15 +211,24 @@ export class GovernanceService {
 
       await this.emitEvent(GovernanceEventType.PROPOSAL_CANCELLED, proposalId);
 
-      logger.info('Cancelled proposal', { proposalId, canceller: cancellerAddress });
+      logger.info('Cancelled proposal', {
+        proposalId,
+        canceller: cancellerAddress,
+      });
     } catch (error) {
-      logger.error('Failed to cancel proposal', { error: (error as Error).message, proposalId });
+      logger.error('Failed to cancel proposal', {
+        error: (error as Error).message,
+        proposalId,
+      });
       throw error;
     }
   }
 
   // Voting
-  async castVote(request: CastVoteRequest, voterAddress: string): Promise<Vote> {
+  async castVote(
+    request: CastVoteRequest,
+    voterAddress: string
+  ): Promise<Vote> {
     try {
       const proposal = await this.getProposal(request.proposalId);
       if (!proposal) {
@@ -233,7 +272,9 @@ export class GovernanceService {
 
       // Check if quorum reached
       const totalEligibleVotingPower = await this.getTotalEligibleVotingPower();
-      proposal.quorumReached = proposal.totalVotingPower >= (totalEligibleVotingPower * this.config.quorumThreshold);
+      proposal.quorumReached =
+        proposal.totalVotingPower >=
+        totalEligibleVotingPower * this.config.quorumThreshold;
 
       await this.storeVote(vote);
       await this.storeProposal(proposal);
@@ -261,7 +302,10 @@ export class GovernanceService {
 
       return vote;
     } catch (error) {
-      logger.error('Failed to cast vote', { error: (error as Error).message, request });
+      logger.error('Failed to cast vote', {
+        error: (error as Error).message,
+        request,
+      });
       throw error;
     }
   }
@@ -277,7 +321,9 @@ export class GovernanceService {
         }
       }
     } catch (error) {
-      logger.error('Failed to process proposal outcomes', { error: (error as Error).message });
+      logger.error('Failed to process proposal outcomes', {
+        error: (error as Error).message,
+      });
     }
   }
 
@@ -287,8 +333,9 @@ export class GovernanceService {
       const approvalRate = totalVotes > 0 ? proposal.votes.yes / totalVotes : 0;
 
       const quorumReached = proposal.quorumReached;
-      const approvalThreshold = this.isEmergencyProposal(proposal) ?
-        this.config.emergencyApprovalThreshold : this.config.approvalThreshold;
+      const approvalThreshold = this.isEmergencyProposal(proposal)
+        ? this.config.emergencyApprovalThreshold
+        : this.config.approvalThreshold;
 
       if (quorumReached && approvalRate >= approvalThreshold) {
         proposal.status = ProposalStatus.SUCCEEDED;
@@ -305,7 +352,6 @@ export class GovernanceService {
           message: `Proposal passed with ${Math.round(approvalRate * 100)}% approval`,
           actionUrl: `/governance/proposals/${proposal.id}`,
         });
-
       } else {
         proposal.status = ProposalStatus.DEFEATED;
 
@@ -334,7 +380,6 @@ export class GovernanceService {
         approvalRate,
         quorumReached,
       });
-
     } catch (error) {
       logger.error('Failed to resolve proposal', {
         error: (error as Error).message,
@@ -378,7 +423,6 @@ export class GovernanceService {
       await this.emitEvent(GovernanceEventType.PROPOSAL_EXECUTED, proposalId);
 
       logger.info('Executed proposal', { proposalId, type: proposal.type });
-
     } catch (error) {
       logger.error('Failed to execute proposal', {
         error: (error as Error).message,
@@ -416,13 +460,16 @@ export class GovernanceService {
         case VotingPowerMethod.HYBRID:
           // Combination of reputation and token balance
           const tokenBalance = 1000; // Mock value
-          votingPower = (user.reputation * 0.7) + (tokenBalance * 0.3);
+          votingPower = user.reputation * 0.7 + tokenBalance * 0.3;
           break;
       }
 
       return Math.max(votingPower, 0);
     } catch (error) {
-      logger.error('Failed to calculate voting power', { error: (error as Error).message, address });
+      logger.error('Failed to calculate voting power', {
+        error: (error as Error).message,
+        address,
+      });
       return 0;
     }
   }
@@ -442,9 +489,9 @@ export class GovernanceService {
   }
 
   private getVotingPeriod(type: ProposalType): number {
-    return type === ProposalType.EMERGENCY_ACTION ?
-      this.config.emergencyVotingPeriod :
-      this.config.votingPeriod;
+    return type === ProposalType.EMERGENCY_ACTION
+      ? this.config.emergencyVotingPeriod
+      : this.config.votingPeriod;
   }
 
   private isEmergencyProposal(proposal: Proposal): boolean {
@@ -457,7 +504,9 @@ export class GovernanceService {
     logger.debug('Storing proposal', { proposalId: proposal.id });
   }
 
-  private async getProposalFromDb(proposalId: string): Promise<Proposal | null> {
+  private async getProposalFromDb(
+    proposalId: string
+  ): Promise<Proposal | null> {
     // TODO: Implement database retrieval
     logger.debug('Retrieving proposal', { proposalId });
     return null;
@@ -473,7 +522,10 @@ export class GovernanceService {
     logger.debug('Storing vote', { voteId: vote.id });
   }
 
-  private async getVote(proposalId: string, voterAddress: string): Promise<Vote | null> {
+  private async getVote(
+    proposalId: string,
+    voterAddress: string
+  ): Promise<Vote | null> {
     // TODO: Implement database retrieval
     return null;
   }
@@ -505,7 +557,11 @@ export class GovernanceService {
   }
 
   // Event emission
-  private async emitEvent(type: GovernanceEventType, proposalId?: string, data: Record<string, any> = {}): Promise<void> {
+  private async emitEvent(
+    type: GovernanceEventType,
+    proposalId?: string,
+    data: Record<string, any> = {}
+  ): Promise<void> {
     const event: GovernanceEvent = {
       id: `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       type,
@@ -519,14 +575,27 @@ export class GovernanceService {
   }
 
   // Notifications
-  private async createNotification(userId: string, notification: Omit<GovernanceNotification, 'id' | 'userId' | 'read' | 'createdAt'>): Promise<void> {
+  private async createNotification(
+    userId: string,
+    notification: Omit<
+      GovernanceNotification,
+      'id' | 'userId' | 'read' | 'createdAt'
+    >
+  ): Promise<void> {
     // TODO: Implement notification creation
     logger.debug('Creating notification', { userId, type: notification.type });
   }
 
-  private async createNotificationForAllUsers(notification: Omit<GovernanceNotification, 'id' | 'userId' | 'read' | 'createdAt'>): Promise<void> {
+  private async createNotificationForAllUsers(
+    notification: Omit<
+      GovernanceNotification,
+      'id' | 'userId' | 'read' | 'createdAt'
+    >
+  ): Promise<void> {
     // TODO: Implement bulk notification creation
-    logger.debug('Creating notification for all users', { type: notification.type });
+    logger.debug('Creating notification for all users', {
+      type: notification.type,
+    });
   }
 
   // Public query methods
@@ -550,7 +619,10 @@ export class GovernanceService {
     }
   }
 
-  async getVoterInfo(proposalId: string, voterAddress: string): Promise<VoterInfo | null> {
+  async getVoterInfo(
+    proposalId: string,
+    voterAddress: string
+  ): Promise<VoterInfo | null> {
     try {
       const votingPower = await this.calculateVotingPower(voterAddress);
       const vote = await this.getVote(proposalId, voterAddress);
@@ -567,7 +639,11 @@ export class GovernanceService {
         delegatedPower: 0,
       };
     } catch (error) {
-      logger.error('Failed to get voter info', { error: (error as Error).message, proposalId, voterAddress });
+      logger.error('Failed to get voter info', {
+        error: (error as Error).message,
+        proposalId,
+        voterAddress,
+      });
       return null;
     }
   }

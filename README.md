@@ -24,6 +24,65 @@ A comprehensive milestone-based escrow system for renewable energy projects on t
 - **CI/CD Pipeline**: Automated testing, building, and deployment with GitHub Actions
 - **Docker Support**: Containerized deployment with Docker Compose
 - **Monitoring Dashboard**: Real-time system monitoring and error tracking
+- **Performance Monitoring**: Advanced performance tracking with caching, alerting, and optimization tools
+
+## ⚡ Performance & Monitoring
+
+### Phase 4: Production-Ready Performance & Monitoring ✅
+
+The platform includes comprehensive performance monitoring and optimization features:
+
+#### Performance Optimizations
+- **Next.js Bundle Analysis**: Automated bundle size monitoring and optimization
+- **SWC Compiler**: Fast compilation with advanced optimizations
+- **Compression**: Gzip compression for reduced bandwidth usage
+- **Image Optimization**: Automatic image optimization and WebP conversion
+
+#### Monitoring Infrastructure
+- **Real-time Metrics**: Performance monitoring for API responses, database queries, and component renders
+- **Memory Monitoring**: Heap usage tracking and memory leak detection
+- **Health Checks**: Automated health check endpoints for load balancer integration
+- **Alerting System**: Configurable alerts with severity levels and notification channels
+
+#### Caching Strategies
+- **Multi-level Caching**: Memory, Redis, and file-based caching with TTL support
+- **API Response Caching**: Intelligent caching of API responses with invalidation
+- **React Query Integration**: Optimized data fetching with background updates
+- **Cache Performance Metrics**: Cache hit rates and performance monitoring
+
+#### Comprehensive Logging
+- **Winston Logger**: Advanced logging with multiple transports and log rotation
+- **Performance Logging**: Request timing, error rates, and system metrics
+- **Log Filtering**: Time-based queries and severity-based filtering
+- **Statistics Generation**: Automated log analysis and reporting
+
+#### Performance Testing
+- **Automated Testing**: Bundle analysis, memory usage, and API performance tests
+- **Health Check API**: `/api/monitoring/health` for system status
+- **Metrics API**: `/api/monitoring/metrics` for detailed performance data
+- **Admin Dashboard**: `/admin/monitoring` for real-time monitoring interface
+
+### Usage
+
+```bash
+# Run performance tests
+npm run performance:test
+
+# Build with bundle analysis
+npm run analyze
+
+# Full performance suite
+npm run performance:full
+
+# Access monitoring dashboard (admin only)
+# Visit: http://localhost:3000/admin/monitoring
+
+# Health check endpoint
+curl http://localhost:3000/api/monitoring/health
+
+# Metrics endpoint
+curl http://localhost:3000/api/monitoring/metrics
+```
 
 ## 📁 Project Structure
 
@@ -248,6 +307,90 @@ NEXT_PUBLIC_APP_ENV="production"
 ### Monitoring Endpoints
 - `GET /api/metrics` - Prometheus metrics
 - `GET /api/health` - Health check endpoint
+
+## 🔒 Security
+
+### Security Features
+
+**Authentication & Authorization**
+- Wallet-based authentication using Solana wallets (Phantom, Solflare)
+- JWT tokens with 24-hour expiration for session management
+- Role-based access control (FUNDER, CREATOR, ADMIN roles)
+- Secure session handling with automatic invalidation
+
+**Input Validation & Sanitization**
+- Zod schema validation for all API inputs
+- XSS prevention with input sanitization
+- SQL injection protection with parameterized queries
+- File upload validation with type and size restrictions
+
+**API Security**
+- Rate limiting (5 auth attempts/15min, 100 API calls/15min, 20 funding ops/hour)
+- CORS configuration with origin validation
+- Security headers (CSP, HSTS, X-Frame-Options, etc.)
+- Request size limits and timeout protection
+
+**Infrastructure Security**
+- Row Level Security (RLS) policies in PostgreSQL
+- Encrypted database connections with SSL/TLS
+- Secure environment variable validation
+- Container security with non-root user execution
+
+### Security Scanning
+
+**Automated Security Checks**
+```bash
+# Run security audit
+npm run security:audit
+
+# Run vulnerability scanning with Snyk
+npm run security:snyk
+
+# Run all security checks
+npm run security:scan
+
+# Run security checks with linting and type checking
+npm run security:check
+```
+
+**CI/CD Security Pipeline**
+- Automated dependency vulnerability scanning
+- CodeQL security analysis
+- Container image vulnerability scanning with Trivy
+- Dependency review on pull requests
+
+### Security Monitoring
+
+**Runtime Security Monitoring**
+- Rate limit violation tracking
+- Suspicious input detection and logging
+- Authentication failure monitoring
+- File upload attempt logging
+
+**Security Headers Applied**
+```
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Content-Security-Policy: default-src 'self'; ...
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+```
+
+### Security Documentation
+
+For detailed security information, see:
+- [Security Best Practices](docs/SECURITY.md) - Comprehensive security guidelines
+- [Architecture Documentation](docs/ARCHITECTURE.md) - System architecture and security design
+
+### Reporting Security Issues
+
+If you discover a security vulnerability, please report it responsibly:
+
+1. **Do not** create a public GitHub issue
+2. Email security concerns to: security@empowergrid.com
+3. Include detailed reproduction steps and potential impact
+4. Allow 48 hours for initial response
 
 ## 🔧 Development Scripts
 

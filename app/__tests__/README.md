@@ -33,6 +33,7 @@ npm run test:coverage
 ## Test Categories
 
 ### 1. **Utility Function Tests** (`utils/program.test.ts`)
+
 - **lamportsToSol / solToLamports**: SOL conversion functions
 - **formatPublicKey**: Address formatting and validation
 - **isValidPublicKey**: Public key validation
@@ -40,6 +41,7 @@ npm run test:coverage
 - **formatNumber**: Number formatting utilities
 
 ### 2. **Component Tests** (`components/ProjectCard.test.tsx`)
+
 - **ProjectCard**: Project display component
   - Renders project information correctly
   - Displays funding progress
@@ -48,6 +50,7 @@ npm run test:coverage
   - Large number formatting
 
 ### 3. **API Endpoint Tests**
+
 - **`/api/meter/latest`**: Meter reading API
   - Returns correct data structure
   - Increments readings on multiple calls
@@ -65,12 +68,14 @@ npm run test:coverage
 ## Testing Utilities
 
 ### **Test Utils** (`utils/test-utils.tsx`)
+
 - Custom render function with providers
 - Mock data generators (`createMockProject`, `createMockMilestone`)
 - Wallet and program mocks
 - React Query test client
 
 ### **Mock Setup** (`jest.setup.js`)
+
 - Next.js router mocking
 - Environment variables
 - Window.solana (Phantom wallet) mocking
@@ -80,11 +85,13 @@ npm run test:coverage
 ## Mock Strategy
 
 ### **Blockchain Mocks**
+
 - **@solana/web3.js**: Connection, PublicKey, Transaction mocks
 - **@coral-xyz/anchor**: Program, Provider, BN mocks
 - **Phantom Wallet**: Window.solana mock with connect/disconnect
 
 ### **API Mocks**
+
 - **fetch**: Global fetch mocking for API calls
 - **node-mocks-http**: HTTP request/response mocking for API tests
 
@@ -98,6 +105,7 @@ npm run test:coverage
 ## Test Patterns
 
 ### **Component Testing**
+
 ```typescript
 import { render, screen } from '../utils/test-utils'
 
@@ -110,29 +118,31 @@ describe('ComponentName', () => {
 ```
 
 ### **API Testing**
+
 ```typescript
-import { createMocks } from 'node-mocks-http'
+import { createMocks } from 'node-mocks-http';
 
 describe('/api/endpoint', () => {
   it('returns correct response', async () => {
-    const { req, res } = createMocks({ method: 'GET' })
-    await handler(req, res)
-    expect(res._getStatusCode()).toBe(200)
-  })
-})
+    const { req, res } = createMocks({ method: 'GET' });
+    await handler(req, res);
+    expect(res._getStatusCode()).toBe(200);
+  });
+});
 ```
 
 ### **Utility Testing**
+
 ```typescript
 describe('utilityFunction', () => {
   it('handles normal case', () => {
-    expect(utilityFunction(input)).toBe(expected)
-  })
+    expect(utilityFunction(input)).toBe(expected);
+  });
 
   it('handles edge cases', () => {
-    expect(utilityFunction(edgeCase)).toBe(expected)
-  })
-})
+    expect(utilityFunction(edgeCase)).toBe(expected);
+  });
+});
 ```
 
 ## Future Test Additions
@@ -146,6 +156,7 @@ describe('utilityFunction', () => {
 ## CI/CD Integration
 
 Tests are configured to run in CI/CD pipelines with:
+
 - Automated test execution
 - Coverage reporting
 - Failure notifications

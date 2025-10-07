@@ -202,7 +202,10 @@ export class ProjectRepository {
         where.creatorId = filters.creatorId;
       }
 
-      if (filters.minTargetAmount !== undefined || filters.maxTargetAmount !== undefined) {
+      if (
+        filters.minTargetAmount !== undefined ||
+        filters.maxTargetAmount !== undefined
+      ) {
         where.targetAmount = {};
         if (filters.minTargetAmount !== undefined) {
           where.targetAmount.gte = filters.minTargetAmount;
@@ -283,7 +286,11 @@ export class ProjectRepository {
   /**
    * Get projects by creator
    */
-  async findByCreator(creatorId: string, page: number = 1, limit: number = 10): Promise<{ projects: Project[]; total: number }> {
+  async findByCreator(
+    creatorId: string,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<{ projects: Project[]; total: number }> {
     return this.findMany({ creatorId }, page, limit);
   }
 
@@ -361,11 +368,19 @@ export class ProjectRepository {
   /**
    * Update project funding amount
    */
-  async updateFundingAmount(id: string, additionalAmount: number): Promise<Project> {
+  async updateFundingAmount(
+    id: string,
+    additionalAmount: number
+  ): Promise<Project> {
     try {
       const project = await prisma.project.findUnique({
         where: { id },
-        select: { currentAmount: true, targetAmount: true, status: true, fundedAt: true },
+        select: {
+          currentAmount: true,
+          targetAmount: true,
+          status: true,
+          fundedAt: true,
+        },
       });
 
       if (!project) {
@@ -374,9 +389,10 @@ export class ProjectRepository {
 
       const newAmount = project.currentAmount + additionalAmount;
       const shouldBeFunded = newAmount >= project.targetAmount;
-      const newStatus = shouldBeFunded && project.status === ProjectStatus.ACTIVE
-        ? ProjectStatus.FUNDED
-        : project.status;
+      const newStatus =
+        shouldBeFunded && project.status === ProjectStatus.ACTIVE
+          ? ProjectStatus.FUNDED
+          : project.status;
 
       return await prisma.project.update({
         where: { id },

@@ -9,20 +9,25 @@ The multi-oracle system provides resilience against single points of failure by 
 ## Key Components
 
 ### OracleManager (`oracleManager.ts`)
+
 Central orchestrator for the multi-oracle system:
+
 - Manages multiple oracle providers
 - Implements consensus algorithms
 - Handles provider health monitoring and reputation
 - Provides aggregated readings with confidence scores
 
 ### OracleConfig (`oracleConfig.ts`)
+
 Configuration settings for the oracle network:
+
 - Consensus parameters (minimum sources, confidence thresholds)
 - Provider configurations (endpoints, weights, timeouts)
 - Reputation management rules
 - Circuit breaker settings
 
 ### API Endpoints
+
 - `/api/meter/multi-oracle` - Get aggregated readings from multiple oracles
 - `/api/meter/oracle-health` - Monitor oracle network health
 - `/api/meter/mock-oracle` - Secondary oracle simulation
@@ -41,6 +46,7 @@ The system uses a weighted consensus approach:
 ## Provider Management
 
 ### Adding Providers
+
 ```typescript
 oracleManager.addProvider({
   name: 'my-oracle',
@@ -55,7 +61,9 @@ oracleManager.addProvider({
 ```
 
 ### Provider Health
+
 Each provider tracks:
+
 - Success/failure rates
 - Response times
 - Reputation scores
@@ -65,6 +73,7 @@ Each provider tracks:
 ## Configuration
 
 ### Environment Variables
+
 ```bash
 # Oracle endpoints
 SWITCHBOARD_ENDPOINT=http://localhost:3000/api/meter/latest
@@ -80,7 +89,9 @@ ORACLE_CONSENSUS_THRESHOLD=0.7
 ```
 
 ### Runtime Configuration
+
 The system supports dynamic configuration updates:
+
 ```typescript
 oracleManager.updateConsensusConfig({
   minSources: 4,
@@ -91,19 +102,28 @@ oracleManager.updateConsensusConfig({
 ## Usage Examples
 
 ### Get Aggregated Reading
+
 ```typescript
-const aggregatedReading = await oracleManager.getAggregatedReading('project-123');
+const aggregatedReading =
+  await oracleManager.getAggregatedReading('project-123');
 if (aggregatedReading.consensus) {
-  console.log('Consensus reached:', aggregatedReading.kwh, aggregatedReading.co2);
+  console.log(
+    'Consensus reached:',
+    aggregatedReading.kwh,
+    aggregatedReading.co2
+  );
 } else {
   console.log('No consensus - insufficient agreement');
 }
 ```
 
 ### Monitor Health
+
 ```typescript
 const health = oracleManager.getHealthStatus();
-console.log(`${health.healthyProviders}/${health.totalProviders} providers healthy`);
+console.log(
+  `${health.healthyProviders}/${health.totalProviders} providers healthy`
+);
 ```
 
 ## Relay Script
@@ -124,11 +144,14 @@ npx ts-node scripts/switchboard/relay_metrics_multi_oracle.ts
 ## Testing
 
 ### Mock Oracles
+
 The system includes mock oracle endpoints for testing:
+
 - `/api/meter/mock-oracle` - Secondary oracle with different baseline
 - `/api/meter/external-oracle` - External service simulation with delays/failures
 
 ### Health Dashboard
+
 Monitor oracle health through the analytics dashboard at `/analytics` (admin only).
 
 ## Security Considerations
@@ -149,6 +172,7 @@ Monitor oracle health through the analytics dashboard at `/analytics` (admin onl
 ## Monitoring
 
 The system integrates with the existing monitoring infrastructure:
+
 - Error tracking for failed oracle requests
 - Performance metrics for response times
 - Health status exposed via API endpoints

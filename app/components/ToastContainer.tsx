@@ -2,7 +2,12 @@ import { useState, useCallback } from 'react';
 import Toast, { ToastType, ToastProps } from './Toast';
 
 interface ToastContainerProps {
-  position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'top-center';
+  position?:
+    | 'top-right'
+    | 'top-left'
+    | 'bottom-right'
+    | 'bottom-left'
+    | 'top-center';
 }
 
 const positionStyles = {
@@ -21,7 +26,9 @@ export interface ToastMessage {
   duration?: number;
 }
 
-export default function ToastContainer({ position = 'top-right' }: ToastContainerProps) {
+export default function ToastContainer({
+  position = 'top-right',
+}: ToastContainerProps) {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const addToast = useCallback((toast: Omit<ToastMessage, 'id'>) => {
@@ -61,10 +68,10 @@ export default function ToastContainer({ position = 'top-right' }: ToastContaine
   return (
     <div
       className={`fixed z-50 ${positionStyles[position]} space-y-2`}
-      aria-live="polite"
-      aria-label="Toast notifications"
+      aria-live='polite'
+      aria-label='Toast notifications'
     >
-      {toasts.map((toast) => (
+      {toasts.map(toast => (
         <Toast
           key={toast.id}
           id={toast.id}
@@ -81,11 +88,14 @@ export default function ToastContainer({ position = 'top-right' }: ToastContaine
 
 // Helper hook for using toasts in components
 export const useToast = () => {
-  const showToast = useCallback((type: ToastType, title: string, message?: string, duration?: number) => {
-    if (typeof window !== 'undefined' && (window as any).toast) {
-      return (window as any).toast[type](title, message, duration);
-    }
-  }, []);
+  const showToast = useCallback(
+    (type: ToastType, title: string, message?: string, duration?: number) => {
+      if (typeof window !== 'undefined' && (window as any).toast) {
+        return (window as any).toast[type](title, message, duration);
+      }
+    },
+    []
+  );
 
   return {
     success: (title: string, message?: string, duration?: number) =>

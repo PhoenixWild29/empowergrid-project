@@ -16,8 +16,12 @@ async function setupDatabase() {
     // Check if .env.local exists
     const envPath = path.join(__dirname, '..', '.env.local');
     if (!fs.existsSync(envPath)) {
-      console.log('❌ .env.local file not found. Please create it with your database URL.');
-      console.log('Example: DATABASE_URL="postgresql://username:password@localhost:5432/empowergrid?schema=public"');
+      console.log(
+        '❌ .env.local file not found. Please create it with your database URL.'
+      );
+      console.log(
+        'Example: DATABASE_URL="postgresql://username:password@localhost:5432/empowergrid?schema=public"'
+      );
       process.exit(1);
     }
 
@@ -48,7 +52,6 @@ async function setupDatabase() {
     console.log('1. Update your .env.local with the correct DATABASE_URL');
     console.log('2. Run "npm run dev" to start the development server');
     console.log('3. The database is now ready for use!');
-
   } catch (error) {
     console.error('❌ Database setup failed:', error.message);
     process.exit(1);
@@ -96,9 +99,11 @@ async function seedDatabase() {
     }
 
     console.log('✅ Database seeding completed');
-
   } catch (error) {
-    console.log('⚠️ Database seeding failed, but setup continues:', error.message);
+    console.log(
+      '⚠️ Database seeding failed, but setup continues:',
+      error.message
+    );
   }
 }
 

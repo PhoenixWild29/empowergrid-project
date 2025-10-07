@@ -34,7 +34,7 @@ import {
   Milestone,
   CreateProjectInstruction,
   lamportsToSol,
-  formatPublicKey
+  formatPublicKey,
 } from '../types';
 
 // Use in components

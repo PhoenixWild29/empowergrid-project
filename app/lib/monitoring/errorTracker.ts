@@ -82,7 +82,11 @@ export class ErrorTracker {
     const errorStack = error instanceof Error ? error.stack : undefined;
 
     // Create error fingerprint for grouping similar errors
-    const fingerprint = this.createFingerprint(errorMessage, errorStack, category);
+    const fingerprint = this.createFingerprint(
+      errorMessage,
+      errorStack,
+      category
+    );
 
     // Check if this error has been seen before
     const existingError = this.errors.get(fingerprint);
@@ -227,12 +231,16 @@ export class ErrorTracker {
 
   // Get errors by severity
   getErrorsBySeverity(severity: ErrorSeverity): ErrorReport[] {
-    return Array.from(this.errors.values()).filter(error => error.severity === severity);
+    return Array.from(this.errors.values()).filter(
+      error => error.severity === severity
+    );
   }
 
   // Get errors by category
   getErrorsByCategory(category: ErrorCategory): ErrorReport[] {
-    return Array.from(this.errors.values()).filter(error => error.category === category);
+    return Array.from(this.errors.values()).filter(
+      error => error.category === category
+    );
   }
 
   // Mark error as resolved
@@ -240,7 +248,10 @@ export class ErrorTracker {
     const error = this.errors.get(fingerprint);
     if (error) {
       error.resolved = true;
-      logger.info('Error marked as resolved', { errorId: error.id, fingerprint });
+      logger.info('Error marked as resolved', {
+        errorId: error.id,
+        fingerprint,
+      });
       return true;
     }
     return false;
@@ -284,7 +295,7 @@ export class GlobalErrorHandler {
 
   private setupGlobalHandlers(): void {
     // Handle uncaught exceptions
-    process.on('uncaughtException', (error) => {
+    process.on('uncaughtException', error => {
       this.errorTracker.trackError(
         error,
         ErrorSeverity.CRITICAL,
@@ -298,7 +309,8 @@ export class GlobalErrorHandler {
 
     // Handle unhandled promise rejections
     process.on('unhandledRejection', (reason, promise) => {
-      const error = reason instanceof Error ? reason : new Error(String(reason));
+      const error =
+        reason instanceof Error ? reason : new Error(String(reason));
       this.errorTracker.trackError(
         error,
         ErrorSeverity.HIGH,
@@ -313,7 +325,7 @@ export class GlobalErrorHandler {
 
     // Handle browser errors (if in browser environment)
     if (typeof window !== 'undefined') {
-      window.addEventListener('error', (event) => {
+      window.addEventListener('error', event => {
         this.errorTracker.trackError(
           event.error || event.message,
           ErrorSeverity.MEDIUM,
@@ -327,8 +339,11 @@ export class GlobalErrorHandler {
         );
       });
 
-      window.addEventListener('unhandledrejection', (event) => {
-        const error = event.reason instanceof Error ? event.reason : new Error(String(event.reason));
+      window.addEventListener('unhandledrejection', event => {
+        const error =
+          event.reason instanceof Error
+            ? event.reason
+            : new Error(String(event.reason));
         this.errorTracker.trackError(
           error,
           ErrorSeverity.HIGH,
@@ -393,4 +408,5 @@ export class ReactErrorBoundaryTracker {
 // Export singleton instances
 export const errorTracker = ErrorTracker.getInstance();
 export const globalErrorHandler = GlobalErrorHandler.getInstance();
-export const reactErrorBoundaryTracker = ReactErrorBoundaryTracker.getInstance();
+export const reactErrorBoundaryTracker =
+  ReactErrorBoundaryTracker.getInstance();

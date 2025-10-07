@@ -59,10 +59,11 @@ export type ProgramError = IdlTypes<EmpowerGridIdl>['ErrorCode'];
     // Write the generated types
     fs.writeFileSync(TYPES_PATH, typesContent, 'utf8');
     console.log(`✅ Types generated successfully at ${TYPES_PATH}`);
-
   } catch (error) {
     if (error.code === 'ENOENT') {
-      console.error('❌ IDL file not found. Please build the Anchor program first.');
+      console.error(
+        '❌ IDL file not found. Please build the Anchor program first.'
+      );
       console.log('Run: cd programs/empower_grid && anchor build');
     } else {
       console.error('❌ Error generating types:', error.message);

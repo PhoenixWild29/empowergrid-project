@@ -11,6 +11,16 @@ jest.mock('@/contexts/AuthContext', () => ({
   }),
 }));
 
+// Mock the logger to prevent Node.js dependencies in browser environment
+jest.mock('@/lib/logging/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
 // Mock fetch
 global.fetch = jest.fn();
 
@@ -55,10 +65,13 @@ describe('CreateProposalModal', () => {
     fireEvent.change(screen.getByPlaceholderText('Proposal title'), {
       target: { value: 'Test Proposal' },
     });
-    fireEvent.change(screen.getByPlaceholderText('Detailed description of the proposal'), {
-      target: { value: 'This is a test proposal description' },
-    });
-    
+    fireEvent.change(
+      screen.getByPlaceholderText('Detailed description of the proposal'),
+      {
+        target: { value: 'This is a test proposal description' },
+      }
+    );
+
     // Fill project funding specific fields
     fireEvent.change(screen.getByPlaceholderText('Enter project ID'), {
       target: { value: 'project-123' },
@@ -75,14 +88,17 @@ describe('CreateProposalModal', () => {
       expect(mockOnClose).toHaveBeenCalled();
     });
 
-    expect(global.fetch).toHaveBeenCalledWith('/api/governance/proposals/create', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-wallet-address': 'test-wallet',
-      },
-      body: expect.any(String),
-    });
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/governance/proposals/create',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-wallet-address': 'test-wallet',
+        },
+        body: expect.any(String),
+      }
+    );
   });
 
   it('shows error on failed submission', async () => {
@@ -103,10 +119,13 @@ describe('CreateProposalModal', () => {
     fireEvent.change(screen.getByPlaceholderText('Proposal title'), {
       target: { value: 'Test Proposal' },
     });
-    fireEvent.change(screen.getByPlaceholderText('Detailed description of the proposal'), {
-      target: { value: 'Description' },
-    });
-    
+    fireEvent.change(
+      screen.getByPlaceholderText('Detailed description of the proposal'),
+      {
+        target: { value: 'Description' },
+      }
+    );
+
     // Fill required project funding fields
     fireEvent.change(screen.getByPlaceholderText('Enter project ID'), {
       target: { value: 'project-123' },

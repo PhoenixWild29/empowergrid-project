@@ -1,10 +1,22 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { RefreshCw, AlertTriangle, CheckCircle, XCircle, Activity } from 'lucide-react';
+import {
+  RefreshCw,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Activity,
+} from 'lucide-react';
 
 interface OracleProvider {
   name: string;
@@ -74,15 +86,15 @@ export const OracleHealthDashboard: React.FC = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'healthy':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return <CheckCircle className='h-4 w-4 text-green-500' />;
       case 'degraded':
-        return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+        return <AlertTriangle className='h-4 w-4 text-yellow-500' />;
       case 'unhealthy':
-        return <XCircle className="h-4 w-4 text-red-500" />;
+        return <XCircle className='h-4 w-4 text-red-500' />;
       case 'disabled':
-        return <XCircle className="h-4 w-4 text-gray-500" />;
+        return <XCircle className='h-4 w-4 text-gray-500' />;
       default:
-        return <Activity className="h-4 w-4 text-gray-500" />;
+        return <Activity className='h-4 w-4 text-gray-500' />;
     }
   };
 
@@ -95,7 +107,11 @@ export const OracleHealthDashboard: React.FC = () => {
     };
 
     return (
-      <Badge className={variants[status as keyof typeof variants] || variants.disabled}>
+      <Badge
+        className={
+          variants[status as keyof typeof variants] || variants.disabled
+        }
+      >
         {status}
       </Badge>
     );
@@ -113,20 +129,22 @@ export const OracleHealthDashboard: React.FC = () => {
 
   if (loading && !healthData) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className='flex items-center justify-center h-64'>
+        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600'></div>
       </div>
     );
   }
 
   if (error && !healthData) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <AlertTriangle className="mx-auto h-12 w-12 text-red-500 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to Load Oracle Health</h3>
-          <p className="text-gray-500">{error}</p>
-          <Button onClick={fetchHealthData} className="mt-4">
+      <div className='flex items-center justify-center h-64'>
+        <div className='text-center'>
+          <AlertTriangle className='mx-auto h-12 w-12 text-red-500 mb-4' />
+          <h3 className='text-lg font-medium text-gray-900 mb-2'>
+            Failed to Load Oracle Health
+          </h3>
+          <p className='text-gray-500'>{error}</p>
+          <Button onClick={fetchHealthData} className='mt-4'>
             Try Again
           </Button>
         </div>
@@ -138,19 +156,26 @@ export const OracleHealthDashboard: React.FC = () => {
     return null;
   }
 
-  const { healthStatus, providers, consensusConfig, overallStatus } = healthData;
+  const { healthStatus, providers, consensusConfig, overallStatus } =
+    healthData;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className='space-y-6'>
+      <div className='flex items-center justify-between'>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Oracle Network Health</h2>
-          <p className="text-gray-600 mt-1">
+          <h2 className='text-2xl font-bold text-gray-900'>
+            Oracle Network Health
+          </h2>
+          <p className='text-gray-600 mt-1'>
             Monitor the status and reliability of multi-oracle data sources
           </p>
         </div>
-        <Button onClick={fetchHealthData} variant="outline" className="flex items-center space-x-2">
-          <RefreshCw className="h-4 w-4" />
+        <Button
+          onClick={fetchHealthData}
+          variant='outline'
+          className='flex items-center space-x-2'
+        >
+          <RefreshCw className='h-4 w-4' />
           <span>Refresh</span>
         </Button>
       </div>
@@ -158,7 +183,7 @@ export const OracleHealthDashboard: React.FC = () => {
       {/* Overall Status */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
+          <CardTitle className='flex items-center space-x-2'>
             {getStatusIcon(overallStatus)}
             <span>Network Status</span>
             {getStatusBadge(overallStatus)}
@@ -168,22 +193,30 @@ export const OracleHealthDashboard: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{healthStatus.totalProviders}</div>
-              <div className="text-sm text-gray-600">Total Providers</div>
+          <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
+            <div className='text-center'>
+              <div className='text-2xl font-bold text-blue-600'>
+                {healthStatus.totalProviders}
+              </div>
+              <div className='text-sm text-gray-600'>Total Providers</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{healthStatus.enabledProviders}</div>
-              <div className="text-sm text-gray-600">Enabled</div>
+            <div className='text-center'>
+              <div className='text-2xl font-bold text-green-600'>
+                {healthStatus.enabledProviders}
+              </div>
+              <div className='text-sm text-gray-600'>Enabled</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">{healthStatus.healthyProviders}</div>
-              <div className="text-sm text-gray-600">Healthy</div>
+            <div className='text-center'>
+              <div className='text-2xl font-bold text-purple-600'>
+                {healthStatus.healthyProviders}
+              </div>
+              <div className='text-sm text-gray-600'>Healthy</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-600">{healthStatus.averageReputation.toFixed(1)}</div>
-              <div className="text-sm text-gray-600">Avg Reputation</div>
+            <div className='text-center'>
+              <div className='text-2xl font-bold text-yellow-600'>
+                {healthStatus.averageReputation.toFixed(1)}
+              </div>
+              <div className='text-sm text-gray-600'>Avg Reputation</div>
             </div>
           </div>
         </CardContent>
@@ -198,22 +231,36 @@ export const OracleHealthDashboard: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div className='grid grid-cols-2 md:grid-cols-4 gap-4 text-sm'>
             <div>
-              <span className="font-medium text-gray-700">Min Sources:</span>
-              <span className="ml-2 text-gray-900">{consensusConfig.minSources}</span>
+              <span className='font-medium text-gray-700'>Min Sources:</span>
+              <span className='ml-2 text-gray-900'>
+                {consensusConfig.minSources}
+              </span>
             </div>
             <div>
-              <span className="font-medium text-gray-700">Required Confidence:</span>
-              <span className="ml-2 text-gray-900">{(consensusConfig.requiredConfidence * 100).toFixed(0)}%</span>
+              <span className='font-medium text-gray-700'>
+                Required Confidence:
+              </span>
+              <span className='ml-2 text-gray-900'>
+                {(consensusConfig.requiredConfidence * 100).toFixed(0)}%
+              </span>
             </div>
             <div>
-              <span className="font-medium text-gray-700">Outlier Threshold:</span>
-              <span className="ml-2 text-gray-900">{consensusConfig.outlierThreshold}σ</span>
+              <span className='font-medium text-gray-700'>
+                Outlier Threshold:
+              </span>
+              <span className='ml-2 text-gray-900'>
+                {consensusConfig.outlierThreshold}σ
+              </span>
             </div>
             <div>
-              <span className="font-medium text-gray-700">Consensus Threshold:</span>
-              <span className="ml-2 text-gray-900">{(consensusConfig.consensusThreshold * 100).toFixed(0)}%</span>
+              <span className='font-medium text-gray-700'>
+                Consensus Threshold:
+              </span>
+              <span className='ml-2 text-gray-900'>
+                {(consensusConfig.consensusThreshold * 100).toFixed(0)}%
+              </span>
             </div>
           </div>
         </CardContent>
@@ -228,24 +275,30 @@ export const OracleHealthDashboard: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {providers.map((provider) => (
-              <div key={provider.name} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                <div className="flex items-center space-x-3">
+          <div className='space-y-4'>
+            {providers.map(provider => (
+              <div
+                key={provider.name}
+                className='flex items-center justify-between p-4 border border-gray-200 rounded-lg'
+              >
+                <div className='flex items-center space-x-3'>
                   {getStatusIcon(provider.status)}
                   <div>
-                    <div className="font-medium text-gray-900">{provider.name}</div>
-                    <div className="text-sm text-gray-600">
-                      Reputation: {provider.reputation}/100 • Failures: {provider.consecutiveFailures}
+                    <div className='font-medium text-gray-900'>
+                      {provider.name}
+                    </div>
+                    <div className='text-sm text-gray-600'>
+                      Reputation: {provider.reputation}/100 • Failures:{' '}
+                      {provider.consecutiveFailures}
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center space-x-4">
-                  <div className="text-right">
-                    <div className="text-sm font-medium text-gray-900">
+                <div className='flex items-center space-x-4'>
+                  <div className='text-right'>
+                    <div className='text-sm font-medium text-gray-900'>
                       {formatUptime(provider.uptime)}
                     </div>
-                    <div className="text-xs text-gray-500">uptime</div>
+                    <div className='text-xs text-gray-500'>uptime</div>
                   </div>
                   {getStatusBadge(provider.status)}
                 </div>
@@ -256,7 +309,7 @@ export const OracleHealthDashboard: React.FC = () => {
       </Card>
 
       {/* Last Update */}
-      <div className="text-xs text-gray-500 text-center">
+      <div className='text-xs text-gray-500 text-center'>
         Last updated: {new Date(healthData.timestamp).toLocaleString()}
       </div>
     </div>

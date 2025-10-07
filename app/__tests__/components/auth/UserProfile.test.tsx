@@ -1,27 +1,24 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import UserProfile from '../../../components/auth/UserProfile';
-import { AuthProvider, fetchUserProfile, mockUpdateProfile, useAuth } from '../../../contexts/AuthContext';
+import { AuthProvider, useAuth } from '../../../contexts/AuthContext';
 import { UserRole } from '../../../types/auth';
 
 // Mock PublicKey
 jest.mock('@solana/web3.js', () => ({
-  PublicKey: jest.fn().mockImplementation((value) => ({
+  PublicKey: jest.fn().mockImplementation(value => ({
     toString: () => value || 'mock-public-key',
     equals: jest.fn(),
   })),
 }));
 
-// Mock AuthContext functions
-jest.mock('../../../contexts/AuthContext', () => {
-  const actual = jest.requireActual('../../../contexts/AuthContext');
-  return {
-    ...actual,
-    fetchUserProfile: jest.fn(),
-    mockUpdateProfile: jest.fn(),
-    useAuth: jest.fn(),
-  };
-});
+// Mock AuthContext
+jest.mock('../../../contexts/AuthContext', () => ({
+  AuthProvider: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+  useAuth: jest.fn(),
+}));
 
 describe('UserProfile', () => {
   const mockUser = {
@@ -35,40 +32,29 @@ describe('UserProfile', () => {
     linkedin: 'testuser-linkedin',
     role: UserRole.CREATOR,
     reputation: 85,
-    createdAt: new Date('2024-01-01'),
-    updatedAt: new Date(),
     verified: true,
+    createdAt: new Date('2024-01-01').toISOString(),
     stats: {
       projectsCreated: 3,
       projectsFunded: 5,
       totalFunded: 1000,
-      successfulProjects: 2,
+      projectsBacked: 3,
+      totalInvested: 1000,
     },
   };
 
+  const mockUpdateProfile = jest.fn();
+
   beforeEach(() => {
     jest.clearAllMocks();
+    (useAuth as jest.Mock).mockReturnValue({
+      user: mockUser,
+      updateProfile: mockUpdateProfile,
+      logout: jest.fn(),
+    });
   });
 
   test('should render user profile information', async () => {
-    // Mock authenticated state
-    (useAuth as unknown as jest.Mock).mockReturnValue({
-      user: mockUser,
-      updateProfile: jest.fn(),
-      logout: jest.fn(),
-      isAuthenticated: true,
-      isLoading: false,
-      walletAddress: mockUser.walletAddress,
-      error: null,
-      login: jest.fn(),
-      refreshProfile: jest.fn(),
-      hasPermission: jest.fn(),
-      switchRole: jest.fn(),
-    });
-
-    // Mock fetchUserProfile to resolve with mockUser
-    (fetchUserProfile as unknown as jest.Mock).mockResolvedValue(mockUser);
-
     render(
       <AuthProvider>
         <UserProfile />
@@ -88,8 +74,6 @@ describe('UserProfile', () => {
   });
 
   test('should display user statistics', async () => {
-    (fetchUserProfile as unknown as jest.Mock).mockResolvedValue(mockUser);
-
     render(
       <AuthProvider>
         <UserProfile />
@@ -105,8 +89,6 @@ describe('UserProfile', () => {
   });
 
   test('should show wallet address with copy functionality', async () => {
-    (fetchUserProfile as unknown as jest.Mock).mockResolvedValue(mockUser);
-
     // Mock clipboard
     Object.assign(navigator, {
       clipboard: {
@@ -127,12 +109,12 @@ describe('UserProfile', () => {
     const copyButton = screen.getByTitle('Copy address');
     await userEvent.click(copyButton);
 
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('test-wallet-address');
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      'test-wallet-address'
+    );
   });
 
   test('should display role badge correctly', async () => {
-    (fetchUserProfile as unknown as jest.Mock).mockResolvedValue(mockUser);
-
     render(
       <AuthProvider>
         <UserProfile />
@@ -146,8 +128,6 @@ describe('UserProfile', () => {
 
   test('should enter edit mode when edit button is clicked', async () => {
     const user = userEvent.setup();
-
-    (fetchUserProfile as unknown as jest.Mock).mockResolvedValue(mockUser);
 
     render(
       <AuthProvider>
@@ -170,18 +150,14 @@ describe('UserProfile', () => {
   test('should save profile changes', async () => {
     const user = userEvent.setup();
 
-    (fetchUserProfile as unknown as jest.Mock).mockResolvedValue(mockUser);
-
-    const updatedUser = {
+    const mockUpdateProfileFn = jest.fn().mockResolvedValue({
       ...mockUser,
       username: 'UpdatedUser',
-    };
-
-    (mockUpdateProfile as unknown as jest.Mock).mockResolvedValue(updatedUser);
+    });
 
     (useAuth as unknown as jest.Mock).mockReturnValue({
       user: mockUser,
-      updateProfile: mockUpdateProfile,
+      updateProfile: mockUpdateProfileFn,
       logout: jest.fn(),
       isAuthenticated: true,
       isLoading: false,
@@ -216,15 +192,13 @@ describe('UserProfile', () => {
     const saveButton = screen.getByText('Save Changes');
     await user.click(saveButton);
 
-    expect(mockUpdateProfile).toHaveBeenCalledWith(
+    expect(mockUpdateProfileFn).toHaveBeenCalledWith(
       expect.objectContaining({ username: 'UpdatedUser' })
     );
   });
 
   test('should cancel edit mode', async () => {
     const user = userEvent.setup();
-
-    (fetchUserProfile as unknown as jest.Mock).mockResolvedValue(mockUser);
 
     render(
       <AuthProvider>
@@ -253,8 +227,6 @@ describe('UserProfile', () => {
     const user = userEvent.setup();
 
     const mockLogout = jest.fn();
-
-    (fetchUserProfile as unknown as jest.Mock).mockResolvedValue(mockUser);
 
     (useAuth as unknown as jest.Mock).mockReturnValue({
       user: mockUser,
@@ -307,6 +279,7 @@ describe('UserProfile', () => {
       </AuthProvider>
     );
 
-    expect(container.firstChild).toBeNull();
+    // When user is null, the component should not render profile content
+    expect(screen.queryByText('User Profile')).not.toBeInTheDocument();
   });
 });

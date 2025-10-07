@@ -2,17 +2,26 @@
 
 import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js';
 import * as anchor from '@coral-xyz/anchor';
-import { EmpowerGridProgram, findProjectPDA, findVaultPDA, findMilestonePDA } from '../types';
+import {
+  EmpowerGridProgram,
+  findProjectPDA,
+  findVaultPDA,
+  findMilestonePDA,
+} from '../types';
 
 // Program configuration
-const PROGRAM_ID = new PublicKey(process.env.NEXT_PUBLIC_PROGRAM_ID || 'YourProgramIdHereReplaceThisWithActualID');
+const PROGRAM_ID = new PublicKey(
+  process.env.NEXT_PUBLIC_PROGRAM_ID ||
+    'YourProgramIdHereReplaceThisWithActualID'
+);
 const CLUSTER = process.env.NEXT_PUBLIC_CLUSTER || 'devnet';
 
 /**
  * Get program connection
  */
 export const getConnection = (): Connection => {
-  const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || clusterApiUrl(CLUSTER as any);
+  const rpcUrl =
+    process.env.NEXT_PUBLIC_RPC_URL || clusterApiUrl(CLUSTER as any);
   return new Connection(rpcUrl, 'confirmed');
 };
 
@@ -51,10 +60,18 @@ export const fetchProjects = async (): Promise<any[]> => {
 /**
  * Fetch project by ID
  */
-export const fetchProject = async (projectId: number, creator: PublicKey): Promise<any | null> => {
+export const fetchProject = async (
+  projectId: number,
+  creator: PublicKey
+): Promise<any | null> => {
   try {
     const program = getProgram();
-    const [projectPDA] = findProjectPDA(new PublicKey(''), creator, projectId, PROGRAM_ID); // Need state PDA
+    const [projectPDA] = findProjectPDA(
+      new PublicKey(''),
+      creator,
+      projectId,
+      PROGRAM_ID
+    ); // Need state PDA
     return await program.account.project.fetch(projectPDA);
   } catch (error) {
     console.error('Error fetching project:', error);
@@ -65,7 +82,9 @@ export const fetchProject = async (projectId: number, creator: PublicKey): Promi
 /**
  * Fetch project milestones
  */
-export const fetchProjectMilestones = async (projectPDA: PublicKey): Promise<any[]> => {
+export const fetchProjectMilestones = async (
+  projectPDA: PublicKey
+): Promise<any[]> => {
   try {
     const program = getProgram();
     const milestones = [];
@@ -105,7 +124,13 @@ export const createProject = async (
   // 2. Build transaction
   // 3. Submit to blockchain
 
-  console.log('Creating project:', { name, description, governanceAuthority, oracleAuthority, milestones });
+  console.log('Creating project:', {
+    name,
+    description,
+    governanceAuthority,
+    oracleAuthority,
+    milestones,
+  });
   throw new Error('Wallet integration required');
 };
 
@@ -116,15 +141,18 @@ export const fundProject = async (
   projectPDA: string,
   amount: number
 ): Promise<{ transaction: string; message: string }> => {
-  const response = await fetch(`/api/actions/fund/${projectPDA}?amount=${amount}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      account: 'placeholder-wallet-address', // Would come from wallet
-    }),
-  });
+  const response = await fetch(
+    `/api/actions/fund/${projectPDA}?amount=${amount}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        account: 'placeholder-wallet-address', // Would come from wallet
+      }),
+    }
+  );
 
   if (!response.ok) {
     throw new Error('Failed to create funding transaction');

@@ -2,7 +2,12 @@ import React, { createContext, useContext, ReactNode } from 'react';
 import ToastContainer from './ToastContainer';
 
 interface ToastContextType {
-  showToast: (type: 'success' | 'error' | 'warning' | 'info', title: string, message?: string, duration?: number) => void;
+  showToast: (
+    type: 'success' | 'error' | 'warning' | 'info',
+    title: string,
+    message?: string,
+    duration?: number
+  ) => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -20,7 +25,12 @@ interface ToastProviderProps {
 }
 
 export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
-  const showToast = (type: 'success' | 'error' | 'warning' | 'info', title: string, message?: string, duration?: number) => {
+  const showToast = (
+    type: 'success' | 'error' | 'warning' | 'info',
+    title: string,
+    message?: string,
+    duration?: number
+  ) => {
     // Use the global toast object exposed by ToastContainer
     if (typeof window !== 'undefined' && (window as any).toast) {
       (window as any).toast[type](title, message, duration);

@@ -23,7 +23,11 @@ export class DatabaseService {
     return this.userRepository.findById(id);
   }
 
-  async createUser(walletAddress: string, username?: string, role: UserRole = UserRole.FUNDER): Promise<User> {
+  async createUser(
+    walletAddress: string,
+    username?: string,
+    role: UserRole = UserRole.FUNDER
+  ): Promise<User> {
     // Generate a default username if not provided
     const defaultUsername = username || `user_${walletAddress.slice(0, 8)}`;
 
@@ -34,7 +38,10 @@ export class DatabaseService {
     });
   }
 
-  async updateUserProfile(userId: string, updates: Partial<UserProfile>): Promise<User> {
+  async updateUserProfile(
+    userId: string,
+    updates: Partial<UserProfile>
+  ): Promise<User> {
     return this.userRepository.update(userId, {
       username: updates.username,
       email: updates.email,
@@ -44,11 +51,17 @@ export class DatabaseService {
     });
   }
 
-  async isUsernameAvailable(username: string, excludeUserId?: string): Promise<boolean> {
+  async isUsernameAvailable(
+    username: string,
+    excludeUserId?: string
+  ): Promise<boolean> {
     return this.userRepository.isUsernameAvailable(username, excludeUserId);
   }
 
-  async isEmailAvailable(email: string, excludeUserId?: string): Promise<boolean> {
+  async isEmailAvailable(
+    email: string,
+    excludeUserId?: string
+  ): Promise<boolean> {
     return this.userRepository.isEmailAvailable(email, excludeUserId);
   }
 
@@ -103,13 +116,16 @@ export class DatabaseService {
   }
 
   // User statistics methods
-  async updateUserStats(userId: string, stats: {
-    projectsCreated?: number;
-    projectsFunded?: number;
-    totalFunded?: number;
-    successfulProjects?: number;
-    totalEarnings?: number;
-  }) {
+  async updateUserStats(
+    userId: string,
+    stats: {
+      projectsCreated?: number;
+      projectsFunded?: number;
+      totalFunded?: number;
+      successfulProjects?: number;
+      totalEarnings?: number;
+    }
+  ) {
     return this.userRepository.updateStats(userId, stats);
   }
 
@@ -127,7 +143,10 @@ export class DatabaseService {
   }
 
   // Utility methods
-  async ensureUserExists(walletAddress: string, username?: string): Promise<User> {
+  async ensureUserExists(
+    walletAddress: string,
+    username?: string
+  ): Promise<User> {
     let user = await this.getUserByWallet(walletAddress);
 
     if (!user) {
@@ -153,17 +172,19 @@ export class DatabaseService {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       verified: user.verified,
-      stats: user.userStats ? {
-        projectsCreated: user.userStats.projectsCreated,
-        projectsFunded: user.userStats.projectsFunded,
-        totalFunded: user.userStats.totalFunded,
-        successfulProjects: user.userStats.successfulProjects,
-      } : {
-        projectsCreated: 0,
-        projectsFunded: 0,
-        totalFunded: 0,
-        successfulProjects: 0,
-      },
+      stats: user.userStats
+        ? {
+            projectsCreated: user.userStats.projectsCreated,
+            projectsFunded: user.userStats.projectsFunded,
+            totalFunded: user.userStats.totalFunded,
+            successfulProjects: user.userStats.successfulProjects,
+          }
+        : {
+            projectsCreated: 0,
+            projectsFunded: 0,
+            totalFunded: 0,
+            successfulProjects: 0,
+          },
     };
   }
 }

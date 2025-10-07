@@ -87,8 +87,14 @@ const productionTransports = [
 export const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
   levels: LOG_LEVELS,
-  format: process.env.NODE_ENV === 'production' ? productionFormat : developmentFormat,
-  transports: process.env.NODE_ENV === 'production' ? productionTransports : developmentTransports,
+  format:
+    process.env.NODE_ENV === 'production'
+      ? productionFormat
+      : developmentFormat,
+  transports:
+    process.env.NODE_ENV === 'production'
+      ? productionTransports
+      : developmentTransports,
   exceptionHandlers: [
     new winston.transports.File({
       filename: path.join(logsDir, 'exceptions.log'),
@@ -111,7 +117,8 @@ export const logRequest = (
   duration: number,
   userId?: string
 ) => {
-  const level: LogLevel = statusCode >= 400 ? 'error' : statusCode >= 300 ? 'warn' : 'http';
+  const level: LogLevel =
+    statusCode >= 400 ? 'error' : statusCode >= 300 ? 'warn' : 'http';
 
   logger.log(level, 'HTTP Request', {
     method,
@@ -183,6 +190,228 @@ export const logSecurityEvent = (
     ...details,
   });
 };
+
+// Add business metrics logging
+export const logBusinessMetric = (
+  metric: string,
+  value: number,
+  dimensions?: Record<string, any>
+) => {
+  logger.info('Business Metric', {
+    metric,
+    value,
+    dimensions,
+  });
+};
+
+// Add audit logging for compliance
+export const logAuditEvent = (
+  userId: string,
+  action: string,
+  resource: string,
+  details?: Record<string, any>
+) => {
+  logger.info('Audit Event', {
+    userId,
+    action,
+    resource,
+    timestamp: new Date().toISOString(),
+    ...details,
+  });
+};
+
+// Add API metrics logging
+export const logApiMetrics = (
+  endpoint: string,
+  method: string,
+  statusCode: number,
+  responseTime: number,
+  requestSize?: number,
+  responseSize?: number,
+  userAgent?: string
+) => {
+  const level: LogLevel = statusCode >= 400 ? 'warn' : 'info';
+
+  logger.log(level, 'API Metrics', {
+    endpoint,
+    method,
+    statusCode,
+    responseTime: `${responseTime}ms`,
+    requestSize: requestSize ? `${requestSize}bytes` : undefined,
+    responseSize: responseSize ? `${responseSize}bytes` : undefined,
+    userAgent,
+  });
+};
+
+// Add error context logging
+export const logErrorWithContext = (
+  error: Error,
+  context: Record<string, any>,
+  userId?: string,
+  sessionId?: string
+) => {
+  logger.error('Error with Context', {
+    error: {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    },
+    context,
+    userId,
+    sessionId,
+  });
+};
+
+// Add cache operation logging
+export const logCacheOperation = (
+  operation: 'hit' | 'miss' | 'set' | 'delete' | 'clear',
+  key: string,
+  duration?: number,
+  hitRate?: number
+) => {
+  logger.debug('Cache Operation', {
+    operation,
+    key,
+    duration: duration ? `${duration}ms` : undefined,
+    hitRate: hitRate ? `${hitRate.toFixed(2)}%` : undefined,
+  });
+};
+
+// Add monitoring heartbeat
+export const logHeartbeat = (
+  service: string,
+  status: 'healthy' | 'degraded' | 'unhealthy',
+  metrics?: Record<string, any>
+) => {
+  const level: LogLevel = status === 'healthy' ? 'debug' : status === 'degraded' ? 'warn' : 'error';
+
+  logger.log(level, 'Service Heartbeat', {
+    service,
+    status,
+    timestamp: new Date().toISOString(),
+    ...metrics,
+  });
+};
+
+// Add log aggregation helper
+export class LogAggregator {
+  private logs: any[] = [];
+  private maxLogs = 10000;
+
+  addLog(level: LogLevel, message: string, meta?: any): void {
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      level,
+      message,
+      ...meta,
+    };
+
+    this.logs.push(logEntry);
+
+    // Keep only recent logs
+    if (this.logs.length > this.maxLogs) {
+      this.logs = this.logs.slice(-this.maxLogs);
+    }
+  }
+
+  getLogs(options: {
+    level?: LogLevel;
+    limit?: number;
+    since?: Date;
+  } = {}): any[] {
+    let filtered = this.logs;
+
+    if (options.level) {
+      filtered = filtered.filter(log => log.level === options.level);
+    }
+
+    if (options.since) {
+      filtered = filtered.filter(log => new Date(log.timestamp) >= options.since!);
+    }
+
+    // Sort by timestamp (newest first)
+    filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    return options.limit ? filtered.slice(0, options.limit) : filtered;
+  }
+
+  getLogStats(): {
+    total: number;
+    byLevel: Record<LogLevel, number>;
+    timeRange: { oldest: string; newest: string };
+  } {
+    const stats = {
+      total: this.logs.length,
+      byLevel: {} as Record<LogLevel, number>,
+      timeRange: {
+        oldest: this.logs.length > 0 ? this.logs[0].timestamp : null,
+        newest: this.logs.length > 0 ? this.logs[this.logs.length - 1].timestamp : null,
+      },
+    };
+
+    // Initialize level counters
+    Object.keys(LOG_LEVELS).forEach(level => {
+      stats.byLevel[level as LogLevel] = 0;
+    });
+
+    // Count logs by level
+    for (const log of this.logs) {
+      stats.byLevel[log.level as LogLevel]++;
+    }
+
+    return stats;
+  }
+
+  clearLogs(): void {
+    this.logs = [];
+  }
+}
+
+// Global log aggregator instance
+export const logAggregator = new LogAggregator();
+
+// Enhanced logger with aggregation
+class EnhancedLogger {
+  private aggregator = logAggregator;
+
+  error(message: string, meta?: any): void {
+    logger.error(message, meta);
+    this.aggregator.addLog('error', message, meta);
+  }
+
+  warn(message: string, meta?: any): void {
+    logger.warn(message, meta);
+    this.aggregator.addLog('warn', message, meta);
+  }
+
+  info(message: string, meta?: any): void {
+    logger.info(message, meta);
+    this.aggregator.addLog('info', message, meta);
+  }
+
+  http(message: string, meta?: any): void {
+    logger.http(message, meta);
+    this.aggregator.addLog('http', message, meta);
+  }
+
+  debug(message: string, meta?: any): void {
+    logger.debug(message, meta);
+    this.aggregator.addLog('debug', message, meta);
+  }
+
+  // Get aggregated logs
+  getAggregatedLogs(options?: Parameters<LogAggregator['getLogs']>[0]) {
+    return this.aggregator.getLogs(options);
+  }
+
+  // Get log statistics
+  getLogStats() {
+    return this.aggregator.getLogStats();
+  }
+}
+
+// Export enhanced logger
+export const enhancedLogger = new EnhancedLogger();
 
 // Export logger instance as default
 export default logger;

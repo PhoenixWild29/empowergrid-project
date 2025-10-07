@@ -67,7 +67,9 @@ export const useWallet = () => {
       setWalletInfo(prev => ({ ...prev, connecting: true }));
 
       if (!window.solana) {
-        throw new Error('Phantom wallet not found. Please install Phantom wallet.');
+        throw new Error(
+          'Phantom wallet not found. Please install Phantom wallet.'
+        );
       }
 
       if (!window.solana.isPhantom) {

@@ -1,7 +1,11 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { governanceService } from '../../../../lib/services/governanceService';
 import { logger } from '../../../../lib/logging/logger';
-import { errorTracker, ErrorSeverity, ErrorCategory } from '../../../../lib/monitoring/errorTracker';
+import {
+  errorTracker,
+  ErrorSeverity,
+  ErrorCategory,
+} from '../../../../lib/monitoring/errorTracker';
 import {
   Proposal,
   ProposalStatus,
@@ -10,7 +14,10 @@ import {
   UpdateProposalRequest,
 } from '../../../../types/governance';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   const { slug } = req.query;
   const action = slug?.[0];
   const proposalId = slug?.[1];
@@ -18,7 +25,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     // TODO: Add authentication when auth service is available
     // For now, accept a wallet address from headers or query params
-    const walletAddress = req.headers['x-wallet-address'] as string || req.query.walletAddress as string;
+    const walletAddress =
+      (req.headers['x-wallet-address'] as string) ||
+      (req.query.walletAddress as string);
 
     switch (req.method) {
       case 'GET':
@@ -45,7 +54,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           if (!walletAddress) {
             return res.status(400).json({ error: 'Wallet address required' });
           }
-          return await handleUpdateProposal(req, res, proposalId, walletAddress);
+          return await handleUpdateProposal(
+            req,
+            res,
+            proposalId,
+            walletAddress
+          );
         }
         break;
 
@@ -54,13 +68,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           if (!walletAddress) {
             return res.status(400).json({ error: 'Wallet address required' });
           }
-          return await handleCancelProposal(req, res, proposalId, walletAddress);
+          return await handleCancelProposal(
+            req,
+            res,
+            proposalId,
+            walletAddress
+          );
         }
         break;
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
-
   } catch (error) {
     logger.error('Governance API error', {
       error: (error as Error).message,
@@ -88,13 +106,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 async function handleListProposals(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const {
-      status,
-      type,
-      proposer,
-      limit = '20',
-      offset = '0',
-    } = req.query;
+    const { status, type, proposer, limit = '20', offset = '0' } = req.query;
 
     const filters = {
       status: status as ProposalStatus,
@@ -116,12 +128,18 @@ async function handleListProposals(req: NextApiRequest, res: NextApiResponse) {
       },
     });
   } catch (error) {
-    logger.error('Failed to list proposals', { error: (error as Error).message });
+    logger.error('Failed to list proposals', {
+      error: (error as Error).message,
+    });
     return res.status(500).json({ error: 'Failed to list proposals' });
   }
 }
 
-async function handleGetProposal(req: NextApiRequest, res: NextApiResponse, proposalId: string) {
+async function handleGetProposal(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  proposalId: string
+) {
   try {
     const proposal = await governanceService.getProposal(proposalId);
 
@@ -134,12 +152,19 @@ async function handleGetProposal(req: NextApiRequest, res: NextApiResponse, prop
       data: proposal,
     });
   } catch (error) {
-    logger.error('Failed to get proposal', { error: (error as Error).message, proposalId });
+    logger.error('Failed to get proposal', {
+      error: (error as Error).message,
+      proposalId,
+    });
     return res.status(500).json({ error: 'Failed to get proposal' });
   }
 }
 
-async function handleCreateProposal(req: NextApiRequest, res: NextApiResponse, proposerAddress: string) {
+async function handleCreateProposal(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  proposerAddress: string
+) {
   try {
     const request: CreateProposalRequest = req.body;
 
@@ -152,34 +177,52 @@ async function handleCreateProposal(req: NextApiRequest, res: NextApiResponse, p
     switch (request.type) {
       case ProposalType.PROJECT_FUNDING:
         if (!request.projectId || !request.fundingAmount) {
-          return res.status(400).json({ error: 'Project funding requires projectId and fundingAmount' });
+          return res.status(400).json({
+            error: 'Project funding requires projectId and fundingAmount',
+          });
         }
         break;
       case ProposalType.MILESTONE_APPROVAL:
         if (!request.projectId || !request.milestoneId) {
-          return res.status(400).json({ error: 'Milestone approval requires projectId and milestoneId' });
+          return res.status(400).json({
+            error: 'Milestone approval requires projectId and milestoneId',
+          });
         }
         break;
       case ProposalType.PARAMETER_CHANGE:
-        if (!request.targetContract || !request.targetFunction || !request.parameters) {
-          return res.status(400).json({ error: 'Parameter change requires targetContract, targetFunction, and parameters' });
+        if (
+          !request.targetContract ||
+          !request.targetFunction ||
+          !request.parameters
+        ) {
+          return res.status(400).json({
+            error:
+              'Parameter change requires targetContract, targetFunction, and parameters',
+          });
         }
         break;
       case ProposalType.TREASURY_ALLOCATION:
         if (!request.fundingAmount) {
-          return res.status(400).json({ error: 'Treasury allocation requires fundingAmount' });
+          return res
+            .status(400)
+            .json({ error: 'Treasury allocation requires fundingAmount' });
         }
         break;
     }
 
-    const proposal = await governanceService.createProposal(request, proposerAddress);
+    const proposal = await governanceService.createProposal(
+      request,
+      proposerAddress
+    );
 
     return res.status(201).json({
       success: true,
       data: proposal,
     });
   } catch (error) {
-    logger.error('Failed to create proposal', { error: (error as Error).message });
+    logger.error('Failed to create proposal', {
+      error: (error as Error).message,
+    });
     return res.status(400).json({ error: (error as Error).message });
   }
 }
@@ -193,14 +236,21 @@ async function handleUpdateProposal(
   try {
     const updates: UpdateProposalRequest = req.body;
 
-    const proposal = await governanceService.updateProposal(proposalId, updates, updaterAddress);
+    const proposal = await governanceService.updateProposal(
+      proposalId,
+      updates,
+      updaterAddress
+    );
 
     return res.status(200).json({
       success: true,
       data: proposal,
     });
   } catch (error) {
-    logger.error('Failed to update proposal', { error: (error as Error).message, proposalId });
+    logger.error('Failed to update proposal', {
+      error: (error as Error).message,
+      proposalId,
+    });
     return res.status(400).json({ error: (error as Error).message });
   }
 }
@@ -219,7 +269,10 @@ async function handleCancelProposal(
       message: 'Proposal cancelled successfully',
     });
   } catch (error) {
-    logger.error('Failed to cancel proposal', { error: (error as Error).message, proposalId });
+    logger.error('Failed to cancel proposal', {
+      error: (error as Error).message,
+      proposalId,
+    });
     return res.status(400).json({ error: (error as Error).message });
   }
 }
@@ -233,7 +286,9 @@ async function handleGetStats(req: NextApiRequest, res: NextApiResponse) {
       data: stats,
     });
   } catch (error) {
-    logger.error('Failed to get governance stats', { error: (error as Error).message });
+    logger.error('Failed to get governance stats', {
+      error: (error as Error).message,
+    });
     return res.status(500).json({ error: 'Failed to get governance stats' });
   }
 }

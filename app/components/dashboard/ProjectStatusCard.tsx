@@ -9,25 +9,31 @@ interface ProjectStatusCardProps {
 export default function ProjectStatusCard({
   project,
   milestones,
-  onViewDetails
+  onViewDetails,
 }: ProjectStatusCardProps) {
   const completedMilestones = milestones.filter(m => m.released).length;
   const totalMilestones = milestones.length;
-  const progressPercentage = totalMilestones > 0 ? (completedMilestones / totalMilestones) * 100 : 0;
+  const progressPercentage =
+    totalMilestones > 0 ? (completedMilestones / totalMilestones) * 100 : 0;
 
   // Determine project status based on milestones and funding
   const getProjectStatus = () => {
-    if (completedMilestones === totalMilestones && totalMilestones > 0) return 'completed';
+    if (completedMilestones === totalMilestones && totalMilestones > 0)
+      return 'completed';
     if (project.fundedAmount > 0) return 'funded';
     return 'active';
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'funded': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'active':
+        return 'bg-green-100 text-green-800';
+      case 'funded':
+        return 'bg-blue-100 text-blue-800';
+      case 'completed':
+        return 'bg-purple-100 text-purple-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -41,29 +47,33 @@ export default function ProjectStatusCard({
   const status = getProjectStatus();
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
-      <div className="flex justify-between items-start mb-4">
+    <div className='bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow'>
+      <div className='flex justify-between items-start mb-4'>
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">
+          <h3 className='text-lg font-semibold text-gray-900 mb-1'>
             {project.name}
           </h3>
-          <p className="text-sm text-gray-600 line-clamp-2">
+          <p className='text-sm text-gray-600 line-clamp-2'>
             {project.description}
           </p>
         </div>
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
+        <span
+          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}
+        >
           {status.toUpperCase()}
         </span>
       </div>
 
-      <div className="space-y-4">
+      <div className='space-y-4'>
         {/* Progress Bar */}
         <div>
-          <div className="flex justify-between text-sm text-gray-600 mb-1">
+          <div className='flex justify-between text-sm text-gray-600 mb-1'>
             <span>Progress</span>
-            <span>{completedMilestones}/{totalMilestones} milestones</span>
+            <span>
+              {completedMilestones}/{totalMilestones} milestones
+            </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className='w-full bg-gray-200 rounded-full h-2'>
             <div
               className={`h-2 rounded-full transition-all duration-300 ${getProgressColor(progressPercentage)}`}
               style={{ width: `${progressPercentage}%` }}
@@ -72,17 +82,23 @@ export default function ProjectStatusCard({
         </div>
 
         {/* Funding Info */}
-        <div className="grid grid-cols-2 gap-4 text-sm">
+        <div className='grid grid-cols-2 gap-4 text-sm'>
           <div>
-            <span className="text-gray-600">Raised</span>
-            <div className="font-semibold text-gray-900">
+            <span className='text-gray-600'>Raised</span>
+            <div className='font-semibold text-gray-900'>
               {(project.fundedAmount / 1_000_000_000).toLocaleString()} SOL
             </div>
           </div>
           <div>
-            <span className="text-gray-600">Target</span>
-            <div className="font-semibold text-gray-900">
-              {milestones.reduce((total, m) => total + (m.amountLamports / 1_000_000_000), 0).toLocaleString()} SOL
+            <span className='text-gray-600'>Target</span>
+            <div className='font-semibold text-gray-900'>
+              {milestones
+                .reduce(
+                  (total, m) => total + m.amountLamports / 1_000_000_000,
+                  0
+                )
+                .toLocaleString()}{' '}
+              SOL
             </div>
           </div>
         </div>
@@ -90,9 +106,11 @@ export default function ProjectStatusCard({
         {/* Next Milestone */}
         {milestones.length > 0 && (
           <div>
-            <span className="text-sm text-gray-600">Next Milestone</span>
-            <div className="text-sm font-medium text-gray-900">
-              Milestone {milestones.find(m => !m.released)?.index || 'All milestones completed'}
+            <span className='text-sm text-gray-600'>Next Milestone</span>
+            <div className='text-sm font-medium text-gray-900'>
+              Milestone{' '}
+              {milestones.find(m => !m.released)?.index ||
+                'All milestones completed'}
             </div>
           </div>
         )}
@@ -100,7 +118,7 @@ export default function ProjectStatusCard({
         {/* Action Button */}
         <button
           onClick={() => onViewDetails(project.id)}
-          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+          className='w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm font-medium'
         >
           View Details
         </button>

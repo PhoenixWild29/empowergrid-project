@@ -28,14 +28,8 @@ export enum Permission {
 
 // Role-based permission mapping
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
-  [UserRole.GUEST]: [
-    Permission.VIEW_PROJECT,
-    Permission.FUND_PROJECT,
-  ],
-  [UserRole.FUNDER]: [
-    Permission.VIEW_PROJECT,
-    Permission.FUND_PROJECT,
-  ],
+  [UserRole.GUEST]: [Permission.VIEW_PROJECT, Permission.FUND_PROJECT],
+  [UserRole.FUNDER]: [Permission.VIEW_PROJECT, Permission.FUND_PROJECT],
   [UserRole.CREATOR]: [
     Permission.VIEW_PROJECT,
     Permission.FUND_PROJECT,
@@ -126,7 +120,10 @@ export interface SessionData {
 }
 
 // Permission checking utility
-export function hasPermission(userRole: UserRole, permission: Permission): boolean {
+export function hasPermission(
+  userRole: UserRole,
+  permission: Permission
+): boolean {
   return ROLE_PERMISSIONS[userRole]?.includes(permission) ?? false;
 }
 
@@ -138,7 +135,11 @@ export function canFundProject(userRole: UserRole): boolean {
   return hasPermission(userRole, Permission.FUND_PROJECT);
 }
 
-export function canEditProject(userRole: UserRole, projectCreator: PublicKey, userWallet?: PublicKey): boolean {
+export function canEditProject(
+  userRole: UserRole,
+  projectCreator: PublicKey,
+  userWallet?: PublicKey
+): boolean {
   if (!userWallet) return false;
 
   // Project creator can always edit their own projects

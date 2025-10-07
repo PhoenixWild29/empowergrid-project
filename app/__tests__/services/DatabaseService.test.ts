@@ -8,8 +8,12 @@ import { UserRole } from '../../types/auth';
 jest.mock('../../lib/repositories/userRepository');
 jest.mock('../../lib/repositories/projectRepository');
 
-const mockUserRepository = UserRepository as jest.MockedClass<typeof UserRepository>;
-const mockProjectRepository = ProjectRepository as jest.MockedClass<typeof ProjectRepository>;
+const mockUserRepository = UserRepository as jest.MockedClass<
+  typeof UserRepository
+>;
+const mockProjectRepository = ProjectRepository as jest.MockedClass<
+  typeof ProjectRepository
+>;
 
 describe('DatabaseService', () => {
   let databaseService: DatabaseService;
@@ -21,8 +25,10 @@ describe('DatabaseService', () => {
     jest.clearAllMocks();
 
     // Create mock instances
-    mockUserRepoInstance = new mockUserRepository() as jest.Mocked<UserRepository>;
-    mockProjectRepoInstance = new mockProjectRepository() as jest.Mocked<ProjectRepository>;
+    mockUserRepoInstance =
+      new mockUserRepository() as jest.Mocked<UserRepository>;
+    mockProjectRepoInstance =
+      new mockProjectRepository() as jest.Mocked<ProjectRepository>;
 
     // Mock the constructors
     mockUserRepository.mockImplementation(() => mockUserRepoInstance);
@@ -65,7 +71,9 @@ describe('DatabaseService', () => {
       const result = await databaseService.getUserByWallet('abc123');
 
       expect(result).toEqual(mockUser);
-      expect(mockUserRepoInstance.findByWalletAddress).toHaveBeenCalledWith('abc123');
+      expect(mockUserRepoInstance.findByWalletAddress).toHaveBeenCalledWith(
+        'abc123'
+      );
     });
   });
 
@@ -147,7 +155,10 @@ describe('DatabaseService', () => {
 
       mockUserRepoInstance.update.mockResolvedValue(mockUpdatedUser);
 
-      const result = await databaseService.updateUserProfile('user-1', updateData);
+      const result = await databaseService.updateUserProfile(
+        'user-1',
+        updateData
+      );
 
       expect(result).toEqual(mockUpdatedUser);
       expect(mockUserRepoInstance.update).toHaveBeenCalledWith('user-1', {
@@ -228,7 +239,9 @@ describe('DatabaseService', () => {
       const result = await databaseService.getProjectById('project-1');
 
       expect(result).toEqual(mockProject);
-      expect(mockProjectRepoInstance.findById).toHaveBeenCalledWith('project-1');
+      expect(mockProjectRepoInstance.findById).toHaveBeenCalledWith(
+        'project-1'
+      );
     });
   });
 
@@ -268,7 +281,11 @@ describe('DatabaseService', () => {
       const result = await databaseService.getProjects(filters, 1, 10);
 
       expect(result).toEqual(mockResult);
-      expect(mockProjectRepoInstance.findMany).toHaveBeenCalledWith(filters, 1, 10);
+      expect(mockProjectRepoInstance.findMany).toHaveBeenCalledWith(
+        filters,
+        1,
+        10
+      );
     });
   });
 
@@ -297,12 +314,20 @@ describe('DatabaseService', () => {
         creator: { id: 'user-1', username: 'creator' },
       };
 
-      mockProjectRepoInstance.updateFundingAmount.mockResolvedValue(mockUpdatedProject);
+      mockProjectRepoInstance.updateFundingAmount.mockResolvedValue(
+        mockUpdatedProject
+      );
 
-      const result = await databaseService.updateProjectFunding('project-1', 500);
+      const result = await databaseService.updateProjectFunding(
+        'project-1',
+        500
+      );
 
       expect(result).toEqual(mockUpdatedProject);
-      expect(mockProjectRepoInstance.updateFundingAmount).toHaveBeenCalledWith('project-1', 500);
+      expect(mockProjectRepoInstance.updateFundingAmount).toHaveBeenCalledWith(
+        'project-1',
+        500
+      );
     });
   });
 
@@ -363,7 +388,10 @@ describe('DatabaseService', () => {
       const result = await databaseService.updateUserStats('user-1', stats);
 
       expect(result).toEqual(mockUpdatedStats);
-      expect(mockUserRepoInstance.updateStats).toHaveBeenCalledWith('user-1', stats);
+      expect(mockUserRepoInstance.updateStats).toHaveBeenCalledWith(
+        'user-1',
+        stats
+      );
     });
   });
 
@@ -414,7 +442,9 @@ describe('DatabaseService', () => {
       const result = await databaseService.ensureUserExists('abc123');
 
       expect(result).toEqual(mockUser);
-      expect(mockUserRepoInstance.findByWalletAddress).toHaveBeenCalledWith('abc123');
+      expect(mockUserRepoInstance.findByWalletAddress).toHaveBeenCalledWith(
+        'abc123'
+      );
       expect(mockUserRepoInstance.create).not.toHaveBeenCalled();
     });
 
@@ -449,10 +479,15 @@ describe('DatabaseService', () => {
       mockUserRepoInstance.findByWalletAddress.mockResolvedValue(null);
       mockUserRepoInstance.create.mockResolvedValue(mockNewUser);
 
-      const result = await databaseService.ensureUserExists('def456', 'customuser');
+      const result = await databaseService.ensureUserExists(
+        'def456',
+        'customuser'
+      );
 
       expect(result).toEqual(mockNewUser);
-      expect(mockUserRepoInstance.findByWalletAddress).toHaveBeenCalledWith('def456');
+      expect(mockUserRepoInstance.findByWalletAddress).toHaveBeenCalledWith(
+        'def456'
+      );
       expect(mockUserRepoInstance.create).toHaveBeenCalledWith({
         walletAddress: 'def456',
         username: 'customuser',
