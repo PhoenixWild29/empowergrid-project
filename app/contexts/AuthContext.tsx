@@ -153,23 +153,60 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       try {
-        // Validate session with backend (mock for now)
-        const isValid = await validateSession(session);
+        // Validate session with backend using the new session endpoint
+        const sessionResponse = await fetch('/api/auth/session', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${session.token}`,
+          },
+        });
 
-        if (isValid) {
-          const user = await fetchUserProfile(session.userId);
-          const walletAddress = new PublicKey(session.walletAddress);
+        if (sessionResponse.ok) {
+          const sessionData = await sessionResponse.json();
+          
+          if (sessionData.success && sessionData.user) {
+            // Session is valid, restore user state
+            const walletAddress = new PublicKey(sessionData.user.walletAddress);
+            
+            // Update session expiry if different
+            if (sessionData.session.expiresAt !== session.expiresAt.toISOString()) {
+              const updatedSession = {
+                ...session,
+                expiresAt: new Date(sessionData.session.expiresAt),
+              };
+              saveSession(updatedSession);
+            }
 
-          dispatch({
-            type: 'AUTH_SUCCESS',
-            payload: { user, walletAddress },
-          });
+            dispatch({
+              type: 'AUTH_SUCCESS',
+              payload: {
+                user: {
+                  ...sessionData.user,
+                  walletAddress,
+                  createdAt: new Date(sessionData.user.createdAt),
+                  updatedAt: new Date(),
+                },
+                walletAddress,
+              },
+            });
+            
+            console.log('Session restored successfully', {
+              userId: sessionData.user.id,
+              expiresIn: sessionData.token.expiresIn,
+            });
+          } else {
+            // Session validation failed
+            clearSession();
+            dispatch({ type: 'SET_LOADING', payload: false });
+          }
         } else {
+          // Session is invalid or expired
+          console.warn('Session validation failed:', sessionResponse.status);
           clearSession();
           dispatch({ type: 'SET_LOADING', payload: false });
         }
       } catch (error) {
-        handleError(error, 'Failed to restore session');
+        console.error('Failed to restore session:', error);
         clearSession();
         dispatch({ type: 'SET_LOADING', payload: false });
       }
@@ -179,37 +216,125 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []); // Remove handleError dependency to prevent infinite loop
 
   // Authentication actions
-  const login = async (walletAddress: PublicKey): Promise<void> => {
+  const login = async (walletAddress: PublicKey, signMessage?: (message: string) => Promise<Uint8Array>): Promise<void> => {
     dispatch({ type: 'AUTH_START' });
 
     try {
-      // Generate challenge message for signing
-      const challengeMessage = `Sign this message to authenticate with EmpowerGRID: ${Date.now()}`;
+      // Step 1: Request authentication challenge from API
+      const challengeResponse = await fetch('/api/auth/challenge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress: walletAddress.toString(),
+        }),
+      });
 
-      // In a real app, you would:
-      // 1. Send challenge to wallet for signing
-      // 2. Verify signature on backend
-      // 3. Return JWT token and user profile
+      if (!challengeResponse.ok) {
+        const errorData = await challengeResponse.json();
+        throw new Error(errorData.message || 'Failed to generate challenge');
+      }
 
-      // Mock authentication flow
-      const loginResponse = await mockLogin(walletAddress);
+      const challengeData = await challengeResponse.json();
 
-      // Save session
+      console.log('Challenge generated:', {
+        nonce: challengeData.nonce.substring(0, 16) + '...',
+        expiresAt: challengeData.expiresAt,
+      });
+
+      // Step 2: Sign the challenge message with wallet
+      let signature: string;
+      
+      if (signMessage) {
+        // Real wallet signature
+        try {
+          const messageBytes = new TextEncoder().encode(challengeData.message);
+          const signatureBytes = await signMessage(challengeData.message);
+          
+          // Convert signature to base58
+          const bs58 = await import('bs58');
+          signature = bs58.default.encode(signatureBytes);
+          
+          console.log('Message signed with wallet');
+        } catch (signError) {
+          console.error('Wallet signature failed:', signError);
+          throw new Error('Failed to sign message with wallet. Please try again.');
+        }
+      } else {
+        // Mock mode: Fall back to mock authentication for development
+        console.warn('No wallet signMessage function provided, using mock authentication');
+        const loginResponse = await mockLogin(walletAddress);
+
+        // Save session
+        const sessionData: SessionData = {
+          userId: loginResponse.user.id,
+          walletAddress: walletAddress.toString(),
+          token: loginResponse.token,
+          expiresAt: loginResponse.expiresAt,
+          createdAt: new Date(),
+        };
+
+        saveSession(sessionData);
+
+        dispatch({
+          type: 'AUTH_SUCCESS',
+          payload: { user: loginResponse.user, walletAddress },
+        });
+        return;
+      }
+
+      // Step 3: Send signature to login endpoint for verification
+      const loginResponse = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress: walletAddress.toString(),
+          signature,
+          message: challengeData.message,
+          nonce: challengeData.nonce,
+        }),
+      });
+
+      if (!loginResponse.ok) {
+        const errorData = await loginResponse.json();
+        throw new Error(errorData.message || 'Authentication failed');
+      }
+
+      const loginData = await loginResponse.json();
+
+      console.log('Login successful:', {
+        userId: loginData.user.id,
+        username: loginData.user.username,
+      });
+
+      // Step 4: Save session with JWT token
       const sessionData: SessionData = {
-        userId: loginResponse.user.id,
+        userId: loginData.user.id,
         walletAddress: walletAddress.toString(),
-        token: loginResponse.token,
-        expiresAt: loginResponse.expiresAt,
+        token: loginData.accessToken,
+        refreshToken: loginData.refreshToken,
+        expiresAt: new Date(loginData.expiresAt),
         createdAt: new Date(),
       };
 
       saveSession(sessionData);
 
+      // Step 5: Update auth state
       dispatch({
         type: 'AUTH_SUCCESS',
-        payload: { user: loginResponse.user, walletAddress },
+        payload: { 
+          user: {
+            ...loginData.user,
+            walletAddress,
+          }, 
+          walletAddress 
+        },
       });
     } catch (error) {
+      console.error('Login error:', error);
       dispatch({
         type: 'AUTH_ERROR',
         payload: error instanceof Error ? error.message : 'Login failed',
@@ -220,7 +345,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = async (): Promise<void> => {
     try {
-      // In a real app, you might want to call a logout endpoint
+      const session = getSession();
+      
+      // Call logout API if we have a token
+      if (session?.token) {
+        try {
+          await fetch('/api/auth/logout', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.token}`,
+            },
+          });
+        } catch (apiError) {
+          // Continue with local logout even if API call fails
+          console.error('Logout API call failed:', apiError);
+        }
+      }
+      
+      // Clear local session
       clearSession();
       dispatch({ type: 'LOGOUT' });
     } catch (error) {

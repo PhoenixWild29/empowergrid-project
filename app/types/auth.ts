@@ -97,11 +97,34 @@ export interface AuthActions {
 // Combined auth context
 export interface AuthContextType extends AuthState, AuthActions {}
 
+// Authentication challenge types
+export interface AuthChallenge {
+  nonce: string;
+  message: string;
+  expiresAt: Date;
+  timestamp: Date;
+  walletAddress?: string;
+}
+
+export interface ChallengeRequest {
+  walletAddress?: string;
+}
+
+export interface ChallengeResponse {
+  success: boolean;
+  nonce: string;
+  message: string;
+  expiresAt: string; // ISO 8601 format
+  expiresIn: number; // seconds
+  timestamp: string; // ISO 8601 format
+}
+
 // Login request/response types
 export interface LoginRequest {
   walletAddress: PublicKey;
   signature?: string; // For message signing verification
   message?: string; // Challenge message to sign
+  nonce?: string; // Challenge nonce for verification
 }
 
 export interface LoginResponse {
@@ -115,8 +138,32 @@ export interface SessionData {
   userId: string;
   walletAddress: string;
   token: string;
+  refreshToken?: string | null;
   expiresAt: Date;
   createdAt: Date;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+}
+
+// JWT Token interfaces
+export interface JWTPayload {
+  userId: string;
+  walletAddress: string;
+  role: UserRole;
+  username?: string;
+  sessionId?: string;
+  iat?: number; // Issued at
+  exp?: number; // Expiration time
+  iss?: string; // Issuer
+  aud?: string; // Audience
+}
+
+export interface TokenPair {
+  accessToken: string;
+  refreshToken?: string;
+  expiresIn: number;
+  expiresAt: Date;
+  tokenType: 'Bearer';
 }
 
 // Permission checking utility

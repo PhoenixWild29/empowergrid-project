@@ -83,6 +83,7 @@ describe('ProjectRepository', () => {
       const projectData = {
         title: 'New Project',
         description: 'Project description',
+        location: 'Test Location',
         category: 'Technology',
         tags: ['blockchain', 'solana'],
         creatorId: 'user-1',

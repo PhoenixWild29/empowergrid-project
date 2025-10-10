@@ -4,11 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { PublicKey } from '@solana/web3.js';
 import { WalletInfo, PhantomWallet } from '../types';
 
-declare global {
-  interface Window {
-    solana?: PhantomWallet;
-  }
-}
+// Global window extension handled in global.d.ts
 
 export const useWallet = () => {
   const [walletInfo, setWalletInfo] = useState<WalletInfo>({

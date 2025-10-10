@@ -9,11 +9,10 @@ import {
   findMilestonePDA,
 } from '../types';
 
-// Program configuration
-const PROGRAM_ID = new PublicKey(
-  process.env.NEXT_PUBLIC_PROGRAM_ID ||
-    'YourProgramIdHereReplaceThisWithActualID'
-);
+// Program configuration - use valid placeholder (system program)
+const PROGRAM_ID = process.env.NEXT_PUBLIC_PROGRAM_ID
+  ? new PublicKey(process.env.NEXT_PUBLIC_PROGRAM_ID)
+  : new PublicKey('11111111111111111111111111111111');
 const CLUSTER = process.env.NEXT_PUBLIC_CLUSTER || 'devnet';
 
 /**
@@ -66,12 +65,13 @@ export const fetchProject = async (
 ): Promise<any | null> => {
   try {
     const program = getProgram();
+    const statePDA = new PublicKey('11111111111111111111111111111111'); // Placeholder state PDA
     const [projectPDA] = findProjectPDA(
-      new PublicKey(''),
+      statePDA,
       creator,
       projectId,
       PROGRAM_ID
-    ); // Need state PDA
+    );
     return await program.account.project.fetch(projectPDA);
   } catch (error) {
     console.error('Error fetching project:', error);

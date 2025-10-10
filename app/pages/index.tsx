@@ -6,10 +6,19 @@ import Layout from '../components/Layout';
 import ProjectCard from '../components/ProjectCard';
 import idl from '../../idl/empower_grid.json';
 
-const PROGRAM_ID = new PublicKey(
-  process.env.NEXT_PUBLIC_PROGRAM_ID ||
-    'YourProgramIdHereReplaceThisWithActualID'
-);
+// Use a valid placeholder program ID (system program)
+const getProgramId = () => {
+  try {
+    if (process.env.NEXT_PUBLIC_PROGRAM_ID && process.env.NEXT_PUBLIC_PROGRAM_ID.length > 0) {
+      return new PublicKey(process.env.NEXT_PUBLIC_PROGRAM_ID);
+    }
+  } catch (error) {
+    console.warn('Invalid NEXT_PUBLIC_PROGRAM_ID, using default');
+  }
+  return new PublicKey('11111111111111111111111111111111');
+};
+
+const PROGRAM_ID = getProgramId();
 
 interface Project {
   id: number;

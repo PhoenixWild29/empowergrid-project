@@ -4,11 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 import { PhantomWallet } from '../types/api';
 
-declare global {
-  interface Window {
-    solana?: PhantomWallet;
-  }
-}
+// Global window extension handled in global.d.ts
 
 export default function WalletConnect() {
   const { isAuthenticated, user, login, logout } = useAuth();

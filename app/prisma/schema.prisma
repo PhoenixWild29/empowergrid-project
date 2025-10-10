@@ -13,11 +13,12 @@ model User {
   walletAddress String   @unique
   username      String   @unique
   email         String?  @unique
+  phoneNumber   String?  // Phone number for contact
   role          UserRole @default(FUNDER)
   reputation    Int      @default(0)
   verified      Boolean  @default(false)
   avatar        String?
-  bio           String?
+  bio           String?  @db.Text // Unlimited text for bio
   website       String?
   socialLinks   Json?    // Store social media links as JSON
   createdAt     DateTime @default(now())
@@ -30,7 +31,21 @@ model User {
   notifications      Notification[]
   comments           Comment[]
   userStats          UserStats?
+  authChallenges     AuthChallenge[]
+  sessions           Session[] @relation("UserSessions")
+  recipients         ReleaseRecipient[] @relation("RecipientUser") // WO-121: Release recipients
+  proposals          Proposal[] @relation("ProposalCreator") // WO-141: Governance proposals
+  votes              Vote[] @relation("VoterVotes") // WO-141: Governance votes
+  
+  // WO-97: Recommendation system relations
+  behaviors          UserBehavior[] @relation("UserBehaviors")
+  preferences        UserPreferences? @relation("UserPreferences")
+  recommendations    Recommendation[] @relation("UserRecommendations")
 
+  @@index([email])
+  @@index([username])
+  @@index([walletAddress])
+  @@index([role])
   @@map("users")
 }
 
@@ -52,8 +67,8 @@ model UserStats {
 
 model Project {
   id              String     @id @default(cuid())
-  title           String
-  description     String
+  title           String     @db.VarChar(200)
+  description     String     @db.Text
   category        String
   tags            String[]   // Array of tags
   status          ProjectStatus @default(DRAFT)
@@ -63,14 +78,17 @@ model Project {
   creator         User       @relation("ProjectCreator", fields: [creatorId], references: [id])
 
   // Project details
-  targetAmount    Float      // Target amount in SOL
-  currentAmount   Float      @default(0) // Current funded amount in SOL
+  location        String     @db.VarChar(200) // Geographic location
+  targetAmount    Float      // Target amount in SOL (fundingTarget for USDC compatibility)
+  currentAmount   Float      @default(0) // Current funded amount in SOL (fundingRaised)
+  energyCapacity  Float?     // Energy capacity in kW (1-10,000 kW)
   milestoneCount  Int        @default(1)
   duration        Int        // Duration in days
 
   // Blockchain info
   programId       String     // Solana program ID
   projectPDA      String     @unique // Project PDA address
+  escrowAddress   String?    // Solana escrow contract address
 
   // Media
   images          String[]   // Array of image URLs
@@ -87,7 +105,27 @@ model Project {
   fundings        Funding[]
   updates         ProjectUpdate[]
   comments        Comment[]
+  energyMetrics   EnergyMetric[]
+  escrowContract  EscrowContract? @relation("ProjectEscrow") // WO-78: Escrow contract
+  oracleFeeds     ProjectOracleFeed[] @relation("ProjectOracleFeeds") // WO-123: Oracle feeds
+  fundAllocations FundAllocation[] @relation("ProjectFundAllocations") // WO-121: Fund allocations
+  governanceProposals Proposal[] @relation("ProjectProposals") // WO-149: Governance proposals
+  
+  // WO-97: Recommendation system relations
+  behaviors       UserBehavior[] @relation("ProjectBehaviors")
+  recommendations Recommendation[] @relation("ProjectRecommendations")
 
+  // WO-65: Optimized indexes for filtering and sorting (<2s for 1000+ projects)
+  @@index([status])
+  @@index([creatorId])
+  @@index([location])
+  @@index([createdAt])                    // WO-65: For date range filtering and sorting
+  @@index([updatedAt])                    // WO-65: For recent activity sorting
+  @@index([title])                        // WO-65: For alphabetical sorting
+  @@index([status, createdAt])            // WO-65: Composite for common query patterns
+  @@index([creatorId, status])            // WO-65: For owner+status filtering
+  @@index([category, status])             // Composite for category filtering
+  @@index([targetAmount])                 // For funding range queries
   @@map("projects")
 }
 
@@ -96,10 +134,12 @@ model Milestone {
   projectId       String
   project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  title           String
-  description     String
+  title           String   @db.VarChar(100)
+  description     String   @db.VarChar(500)
   order           Int      // Milestone order (1, 2, 3, etc.)
-  targetAmount    Float    // Amount to release this milestone in SOL
+  targetAmount    Float    // Amount to release this milestone in SOL/USDC
+  energyTarget    Float?   // Optional energy target in kWh
+  dueDate         DateTime // Due date for milestone completion
 
   status          MilestoneStatus @default(PENDING)
   releasedById    String?
@@ -108,29 +148,98 @@ model Milestone {
 
   // Metrics data (stored off-chain)
   metricsData     Json?    // Store metrics as JSON
+  verificationData Json?   // Verification data for milestone completion
   submittedAt     DateTime?
   approvedAt      DateTime?
+  completedAt     DateTime? // When the milestone was completed
+
+  // WO-98: Fund release relation
+  fundReleases    FundRelease[] @relation("MilestoneReleases")
+  
+  // WO-114: Verification relation
+  verifications   MilestoneVerification[] @relation("MilestoneVerifications")
+  
+  // WO-133: Metric verification relations
+  metricVerifications VerificationAudit[] @relation("VerificationAudits")
+  audits              MetricVerification[] @relation("MetricVerifications")
+  
+  // WO-121: Fund allocation relation
+  fundAllocations FundAllocation[] @relation("MilestoneFundAllocations")
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  @@index([projectId])
+  @@index([status])
   @@map("milestones")
 }
 
 model Funding {
-  id            String   @id @default(cuid())
-  projectId     String
-  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id              String   @id @default(cuid())
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  funderId      String
-  funder        User     @relation("ProjectFunder", fields: [funderId], references: [id])
+  funderId        String
+  funder          User     @relation("ProjectFunder", fields: [funderId], references: [id])
 
-  amount        Float    // Amount funded in SOL
-  transactionId String   @unique // Solana transaction ID
+  amount          Float    // Amount funded in SOL/USDC
+  currency        String   @default("USDC") // WO-80: Currency type (SOL, USDC)
+  
+  // WO-80: Transaction tracking
+  transactionHash String   @unique // Solana transaction signature/hash
+  transactionType String   @default("CONTRIBUTION") // CONTRIBUTION, REFUND, RELEASE
+  status          TransactionStatus @default(PENDING) // PENDING, CONFIRMED, FAILED
+  
+  // WO-80: Payment details
+  paymentMethod   String?  // Wallet type: Phantom, Solflare, etc.
+  walletAddress   String?  // Funder's wallet address
+  
+  // WO-80: Performance tracking
+  expectedReturn  Float?   // Expected ROI at time of funding
+  actualReturn    Float?   // Actual ROI realized
+  
+  // WO-80: Audit fields
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  confirmedAt     DateTime? // When transaction confirmed on-chain
+  
+  // WO-80: Metadata
+  metadata        Json?    // Additional transaction data
+  ipAddress       String?  // For security audit
 
-  fundedAt      DateTime @default(now())
-
+  @@index([projectId])
+  @@index([funderId])
+  @@index([createdAt])
+  @@index([status])       // WO-80: Query by transaction status
+  @@index([transactionHash]) // WO-80: Fast lookup by hash
   @@map("fundings")
+}
+
+// WO-80: Transaction Status enum
+enum TransactionStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  REFUNDED
+}
+
+model EnergyMetric {
+  id              String   @id @default(cuid())
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  energyProduced  Float    // Energy produced in kWh
+  reportedAt      DateTime // When the metric was reported
+  verified        Boolean  @default(false)
+  verifiedAt      DateTime?
+  verifiedBy      String?  // Oracle or verifier identifier
+  
+  metadata        Json?    // Additional metric metadata
+  createdAt       DateTime @default(now())
+
+  @@index([projectId])
+  @@index([reportedAt])
+  @@map("energy_metrics")
 }
 
 model ProjectUpdate {
@@ -187,6 +296,85 @@ model Notification {
   @@map("notifications")
 }
 
+model AuthChallenge {
+  id            String   @id @default(cuid())
+  nonce         String   @unique // Unique cryptographic nonce
+  walletAddress String?  // Optional wallet address this challenge is for
+  userId        String?  // Optional user ID if wallet is already registered
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  message       String   // Challenge message that was sent
+  ipAddress     String?  // IP address that requested the challenge
+  userAgent     String?  // User agent of the request
+  
+  used          Boolean  @default(false) // Whether this nonce has been consumed
+  usedAt        DateTime? // When the nonce was used
+  
+  expiresAt     DateTime // When this challenge expires
+  createdAt     DateTime @default(now())
+
+  @@index([nonce])
+  @@index([walletAddress])
+  @@index([expiresAt])
+  @@index([createdAt])
+  @@map("auth_challenges")
+}
+
+model Session {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation("UserSessions", fields: [userId], references: [id], onDelete: Cascade)
+  
+  token         String   @unique // JWT access token
+  refreshToken  String?  @unique // JWT refresh token
+  
+  ipAddress     String?  // IP address of the session
+  userAgent     String?  // User agent of the session
+  isValid       Boolean  @default(true) // Whether the session is still valid
+  
+  expiresAt     DateTime // When this session expires
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([createdAt])
+  @@map("sessions")
+}
+
+model BlacklistedToken {
+  id        String   @id @default(cuid())
+  token     String   @unique // The blacklisted JWT token
+  userId    String   // User who owned the token
+  reason    String?  // Reason for blacklisting: 'logout', 'forced', 'expired', 'security'
+  expiresAt DateTime // When the original token expires (for cleanup)
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([createdAt])
+  @@map("blacklisted_tokens")
+}
+
+model SecurityEvent {
+  id          String   @id @default(cuid())
+  userId      String
+  eventType   String   // Type of security event
+  severity    String   // Severity: info, low, medium, high, critical
+  ipAddress   String?  // IP address associated with the event
+  userAgent   String?  // User agent associated with the event
+  metadata    Json?    // Additional event-specific metadata
+  timestamp   DateTime @default(now())
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([severity])
+  @@index([timestamp])
+  @@map("security_events")
+}
+
 // Enums
 enum UserRole {
   GUEST
@@ -218,4 +406,1010 @@ enum NotificationType {
   PROJECT_COMPLETED
   NEW_COMMENT
   PROJECT_UPDATE
+}
+
+// WO-97: Personalized Recommendation System Models
+
+model UserBehavior {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation("UserBehaviors", fields: [userId], references: [id], onDelete: Cascade)
+  
+  projectId   String
+  project     Project  @relation("ProjectBehaviors", fields: [projectId], references: [id], onDelete: Cascade)
+  
+  actionType  String   // 'viewed', 'bookmarked', 'funded', 'shared', 'compared'
+  duration    Int?     // Duration in seconds (for 'viewed' actions)
+  metadata    Json?    // Additional context data
+  
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([actionType])
+  @@index([createdAt])
+  @@index([userId, projectId])
+  @@map("user_behaviors")
+}
+
+model UserPreferences {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation("UserPreferences", fields: [userId], references: [id], onDelete: Cascade)
+  
+  preferredCategories String[] // Array of preferred project categories
+  preferredLocations  String[] // Array of preferred locations
+  minCapacity         Float?   // Minimum energy capacity preference
+  maxCapacity         Float?   // Maximum energy capacity preference
+  minFunding          Float?   // Minimum funding amount preference
+  maxFunding          Float?   // Maximum funding amount preference
+  riskTolerance       String?  // 'low', 'medium', 'high'
+  investmentHorizon   String?  // 'short', 'medium', 'long'
+  
+  updatedAt           DateTime @updatedAt
+  createdAt           DateTime @default(now())
+
+  @@map("user_preferences")
+}
+
+model Recommendation {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation("UserRecommendations", fields: [userId], references: [id], onDelete: Cascade)
+  
+  projectId   String
+  project     Project  @relation("ProjectRecommendations", fields: [projectId], references: [id], onDelete: Cascade)
+  
+  score       Float    // Recommendation score (0-100)
+  reason      String   // Why this project was recommended
+  algorithm   String   // Algorithm used: 'collaborative', 'content', 'trending', 'similar'
+  
+  feedback    Int?     // User feedback: -1 (thumbs down), 0 (no feedback), 1 (thumbs up)
+  feedbackAt  DateTime?
+  
+  viewed      Boolean  @default(false)
+  viewedAt    DateTime?
+  
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime // Recommendations expire after some time
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([score])
+  @@index([createdAt])
+  @@index([expiresAt])
+  @@index([userId, score])
+  @@map("recommendations")
+}
+
+// WO-78: Escrow Contract Management
+model EscrowContract {
+  id                String   @id @default(cuid())
+  contractId        String   @unique // Blockchain contract ID
+  projectId         String   @unique
+  project           Project  @relation("ProjectEscrow", fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Blockchain details
+  programId         String   // Anchor program ID
+  escrowAccount     String   // Escrow account address
+  authorityAccount  String   // Authority account address
+  deploymentTxHash  String   // Deployment transaction hash
+  
+  // Contract configuration
+  fundingTarget     Float    // Total funding target in USDC
+  currentBalance    Float    @default(0) // Current escrow balance
+  
+  // Multi-signature setup
+  signers           Json     // Array of authorized signers
+  requiredSignatures Int    @default(1)
+  
+  // Oracle configuration
+  oracleAuthority   String?  // Switchboard oracle authority
+  oracleData        Json?    // Oracle configuration data
+  
+  // Emergency recovery
+  emergencyContact  String?  // Emergency recovery address
+  recoveryEnabled   Boolean  @default(true)
+  
+  // Status tracking
+  status            EscrowStatus @default(INITIALIZED)
+  activatedAt       DateTime?
+  completedAt       DateTime?
+  
+  // Audit fields
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdBy         String   // User ID who created the contract
+  
+  // Relations
+  deposits          EscrowDeposit[]
+  releases          FundRelease[] @relation("ContractReleases") // WO-98
+  
+  @@index([contractId])
+  @@index([projectId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("escrow_contracts")
+}
+
+// WO-84: Escrow Deposits
+model EscrowDeposit {
+  id                String   @id @default(cuid())
+  escrowContractId  String
+  escrowContract    EscrowContract @relation(fields: [escrowContractId], references: [id], onDelete: Cascade)
+  
+  // Deposit details
+  depositorId       String   // User ID
+  depositorWallet   String   // Wallet address
+  amount            Float    // Amount in USDC
+  
+  // Blockchain transaction
+  transactionHash   String   @unique
+  transactionStatus TransactionStatus @default(PENDING)
+  confirmedAt       DateTime?
+  
+  // Fee tracking
+  networkFee        Float    @default(0)
+  platformFee       Float    @default(0)
+  
+  // Audit
+  createdAt         DateTime @default(now())
+  ipAddress         String?
+  
+  @@index([escrowContractId])
+  @@index([depositorId])
+  @@index([transactionHash])
+  @@index([transactionStatus])
+  @@index([createdAt])
+  @@map("escrow_deposits")
+}
+
+// WO-98: Fund Release Model
+model FundRelease {
+  id                String   @id @default(cuid())
+  escrowContractId  String
+  escrowContract    EscrowContract @relation("ContractReleases", fields: [escrowContractId], references: [id], onDelete: Cascade)
+  
+  milestoneId       String
+  milestone         Milestone @relation("MilestoneReleases", fields: [milestoneId], references: [id], onDelete: Cascade)
+  
+  // Release details
+  amount            Float    // Amount released in USDC
+  transactionHash   String   @unique // Solana transaction hash
+  
+  // Oracle verification data
+  oracleData        Json?    // Switchboard verification data
+  verificationScore Float?   // Oracle confidence score (0-1)
+  
+  // Timestamps
+  releasedAt        DateTime @default(now())
+  
+  @@index([escrowContractId])
+  @@index([milestoneId])
+  @@index([transactionHash])
+  @@index([releasedAt])
+  @@map("fund_releases")
+}
+
+// WO-78: Escrow Contract Status enum
+enum EscrowStatus {
+  INITIALIZED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  EMERGENCY_STOPPED
+}
+
+// WO-92: Contract Parameter History
+model ContractParameterHistory {
+  id                String   @id @default(cuid())
+  contractId        String
+  
+  // Change details
+  changeType        ParameterChangeType
+  parameterName     String   // Parameter that was changed
+  previousValue     Json?    // Previous parameter value
+  newValue          Json     // New parameter value
+  
+  // Approval tracking
+  proposedBy        String   // User ID who proposed the change
+  approvedBy        Json?    // Array of user IDs who approved
+  requiredApprovals Int      // Number of approvals required
+  currentApprovals  Int      @default(0)
+  
+  // Status
+  status            ApprovalStatus @default(PENDING)
+  proposalReason    String?  // Reason for the change
+  rejectionReason   String?  // Reason for rejection if applicable
+  
+  // Timestamps
+  proposedAt        DateTime @default(now())
+  approvedAt        DateTime?
+  executedAt        DateTime?
+  expiresAt         DateTime
+  
+  @@index([contractId])
+  @@index([status])
+  @@index([proposedAt])
+  @@map("contract_parameter_history")
+}
+
+// WO-92: Parameter Change Types
+enum ParameterChangeType {
+  MILESTONE_UPDATE
+  MILESTONE_REORDER
+  TIMELINE_ADJUSTMENT
+  ORACLE_CONFIGURATION
+  SIGNER_UPDATE
+  THRESHOLD_UPDATE
+  TARGET_AMOUNT_UPDATE
+}
+
+// WO-92: Approval Status
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+  EXECUTED
+}
+
+// WO-99: Emergency Release Model
+model EmergencyRelease {
+  id                String   @id @default(cuid())
+  contractId        String
+  
+  // Release details
+  releaseType       EmergencyReleaseType
+  amount            Float?    // Amount to release (null for full release)
+  recipient         String    // Wallet address to receive funds
+  reason            String    @db.Text // Detailed reason for emergency release
+  
+  // Authorization
+  proposedBy        String    // User ID who proposed
+  approvers         Json      // Array of user IDs who approved
+  requiredApprovals Int       // Number of approvals required
+  currentApprovals  Int       @default(0)
+  
+  // Time-lock
+  timeLockId        String?   // Time-lock identifier
+  timeLockDelay     Int       // Delay in seconds
+  proposedAt        DateTime  @default(now())
+  canExecuteAt      DateTime  // When execution is allowed
+  
+  // Status
+  status            EmergencyReleaseStatus @default(PENDING)
+  executedAt        DateTime?
+  transactionHash   String?   @unique
+  
+  // Audit
+  ipAddress         String?
+  metadata          Json?     // Additional metadata
+  
+  @@index([contractId])
+  @@index([status])
+  @@index([proposedAt])
+  @@index([canExecuteAt])
+  @@map("emergency_releases")
+}
+
+// WO-99: Emergency Release Types
+enum EmergencyReleaseType {
+  PARTIAL_RELEASE     // Release specific amount
+  FULL_RELEASE        // Release all funds
+  CONTRACT_SUSPENSION // Suspend contract
+  DISPUTE_RESOLUTION  // Resolve dispute
+}
+
+// WO-99: Emergency Release Status
+enum EmergencyReleaseStatus {
+  PENDING           // Waiting for approvals
+  APPROVED          // Approved, waiting for time-lock
+  TIME_LOCKED       // In time-lock period
+  READY_TO_EXECUTE  // Time-lock matured, ready for execution
+  EXECUTED          // Executed successfully
+  CANCELLED         // Cancelled before execution
+  REJECTED          // Rejected by approvers
+}
+
+// WO-116: Dispute Model
+model Dispute {
+  id                String   @id @default(cuid())
+  contractId        String
+  milestoneId       String?
+  
+  // Dispute details
+  disputeType       DisputeType
+  title             String   @db.VarChar(200)
+  description       String   @db.Text
+  
+  // Parties involved
+  initiatedBy       String   // User ID
+  respondent        String   // User ID of other party
+  arbitratorId      String?  // Assigned arbitrator user ID
+  
+  // Status tracking
+  status            DisputeStatus @default(OPEN)
+  priority          DisputePriority @default(MEDIUM)
+  
+  // Resolution
+  resolution        String?  @db.Text
+  resolutionType    ResolutionType?
+  fundReleaseTo     String?  // Wallet address for fund release
+  fundReleaseAmount Float?
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  resolvedAt        DateTime?
+  
+  // Relations
+  evidence          DisputeEvidence[]
+  communications    DisputeCommunication[]
+  
+  @@index([contractId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("disputes")
+}
+
+// WO-116: Dispute Evidence
+model DisputeEvidence {
+  id                String   @id @default(cuid())
+  disputeId         String
+  dispute           Dispute  @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  
+  // Evidence details
+  submittedBy       String   // User ID
+  fileName          String
+  fileUrl           String   // S3/IPFS URL
+  fileSize          Int      // Size in bytes
+  fileType          String   // MIME type
+  description       String   @db.Text
+  
+  // Verification
+  verified          Boolean  @default(false)
+  verifiedBy        String?
+  verifiedAt        DateTime?
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  
+  @@index([disputeId])
+  @@index([submittedBy])
+  @@map("dispute_evidence")
+}
+
+// WO-116: Dispute Communication
+model DisputeCommunication {
+  id                String   @id @default(cuid())
+  disputeId         String
+  dispute           Dispute  @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  
+  // Message details
+  senderId          String   // User ID
+  recipientId       String?  // User ID (null for broadcast)
+  message           String   @db.Text
+  messageType       CommunicationType @default(COMMENT)
+  
+  // Attachments
+  attachments       Json?    // Array of file references
+  
+  // Status
+  isRead            Boolean  @default(false)
+  readAt            DateTime?
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  
+  @@index([disputeId])
+  @@index([senderId])
+  @@map("dispute_communications")
+}
+
+// WO-116: Dispute Types
+enum DisputeType {
+  MILESTONE_VERIFICATION  // Dispute over milestone completion
+  FUND_ALLOCATION         // Dispute over fund distribution
+  ORACLE_DATA             // Dispute over oracle data accuracy
+  CONTRACT_BREACH         // Alleged contract violation
+  OTHER                   // Other dispute types
+}
+
+// WO-116: Dispute Status
+enum DisputeStatus {
+  OPEN                    // Dispute opened
+  UNDER_REVIEW            // Being reviewed
+  AWAITING_EVIDENCE       // Waiting for evidence submission
+  ARBITRATION_ASSIGNED    // Arbitrator assigned
+  ARBITRATION_IN_PROGRESS // Arbitration ongoing
+  RESOLVED                // Dispute resolved
+  CLOSED                  // Dispute closed without resolution
+}
+
+// WO-116: Dispute Priority
+enum DisputePriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// WO-116: Resolution Type
+enum ResolutionType {
+  FUND_RELEASE            // Release funds to party
+  CONTRACT_MODIFICATION   // Modify contract terms
+  CONTRACT_TERMINATION    // Terminate contract
+  NO_ACTION               // No action required
+}
+
+// WO-116: Communication Type
+enum CommunicationType {
+  COMMENT                 // General comment
+  EVIDENCE_SUBMISSION     // Evidence submitted
+  ARBITRATOR_MESSAGE      // Message from arbitrator
+  SYSTEM_NOTIFICATION     // System-generated notification
+  RESOLUTION_NOTICE       // Resolution notification
+}
+
+// WO-114: Milestone Verification Model
+model MilestoneVerification {
+  id                    String   @id @default(cuid())
+  milestoneId           String
+  milestone             Milestone @relation("MilestoneVerifications", fields: [milestoneId], references: [id], onDelete: Cascade)
+  
+  escrowContractId      String
+  
+  // Verification details
+  status                VerificationStatus @default(PENDING)
+  verificationProof     Json?    // Evidence data (files, links, etc.)
+  
+  // Oracle integration
+  oracleSourceId        String?  // Oracle source identifier
+  oraclePayload         Json?    // Oracle verification data
+  energyProduced        Float?   // kWh produced
+  oracleConfidence      Float?   // Oracle confidence score (0-1)
+  
+  // Verification outcome
+  verified              Boolean  @default(false)
+  verificationResult    String?  @db.Text
+  rejectionReason       String?  @db.Text
+  
+  // Timestamps (immutable once created)
+  verificationTimestamp DateTime @default(now())
+  verifiedAt            DateTime?
+  
+  // Audit
+  verifiedBy            String?  // User ID who verified
+  metadata              Json?    // Additional metadata
+  
+  @@index([milestoneId])
+  @@index([escrowContractId])
+  @@index([status])
+  @@index([verificationTimestamp])
+  @@map("milestone_verifications")
+}
+
+// WO-114: Verification Status Enum
+enum VerificationStatus {
+  PENDING               // Verification pending
+  IN_PROGRESS           // Oracle verification in progress
+  VERIFIED              // Successfully verified
+  FAILED                // Verification failed
+  REQUIRES_ACTION       // Requires manual action
+}
+
+// WO-123: Oracle Feed Model
+model OracleFeed {
+  id                String   @id @default(cuid())
+  feedAddress       String   @unique // Solana address of the oracle feed
+  feedType          OracleFeedType
+  name              String   @db.VarChar(100)
+  description       String?  @db.Text
+  updateFrequency   Int      // Update frequency in seconds
+  isActive          Boolean  @default(true)
+  
+  // Metadata
+  aggregatorKey     String?  // Switchboard aggregator key
+  minConfidence     Float    @default(0.8)
+  maxStaleness      Int      @default(300) // Max age in seconds
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  dataPoints        OracleDataPoint[]
+  projectFeeds      ProjectOracleFeed[]
+  
+  @@index([feedAddress])
+  @@index([feedType])
+  @@index([isActive])
+  @@map("oracle_feeds")
+}
+
+// WO-123: Oracle Data Point Model
+model OracleDataPoint {
+  id                String   @id @default(cuid())
+  feedId            String
+  feed              OracleFeed @relation(fields: [feedId], references: [id], onDelete: Cascade)
+  
+  // Data values
+  value             Float    // Numeric value from oracle
+  confidence        Float    // Confidence score (0-1)
+  timestamp         DateTime // When data was created
+  
+  // Cryptographic verification
+  signature         String?  // Oracle signature
+  aggregatorRound   BigInt?  // Switchboard aggregator round
+  
+  // Metadata
+  dataSource        String?  // Source identifier
+  metadata          Json?    // Additional data
+  
+  // Audit
+  createdAt         DateTime @default(now())
+  
+  // WO-133: Relation to metric verifications
+  metricVerifications MetricVerification[]
+  
+  @@index([feedId])
+  @@index([timestamp])
+  @@index([createdAt])
+  @@map("oracle_data_points")
+}
+
+// WO-123: Project Oracle Feed Association
+model ProjectOracleFeed {
+  id                String   @id @default(cuid())
+  projectId         String
+  project           Project  @relation("ProjectOracleFeeds", fields: [projectId], references: [id], onDelete: Cascade)
+  
+  feedId            String
+  feed              OracleFeed @relation(fields: [feedId], references: [id], onDelete: Cascade)
+  
+  // Configuration
+  thresholdValue    Float?   // Threshold for this project
+  isActive          Boolean  @default(true)
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@unique([projectId, feedId])
+  @@index([projectId])
+  @@index([feedId])
+  @@map("project_oracle_feeds")
+}
+
+// WO-123: Oracle Feed Type Enum
+enum OracleFeedType {
+  ENERGY_PRODUCTION
+  WEATHER
+  EQUIPMENT_STATUS
+}
+
+// WO-133: Verification Algorithm Model
+model VerificationAlgorithm {
+  id                String   @id @default(cuid())
+  name              String   @unique @db.VarChar(100)
+  description       String?  @db.Text
+  algorithmType     VerificationAlgorithmType
+  parameters        Json?    // Flexible algorithm parameters
+  isActive          Boolean  @default(true)
+  version           String   @default("1.0") @db.VarChar(20)
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  verifications     MetricVerification[]
+  
+  @@index([algorithmType])
+  @@index([isActive])
+  @@map("verification_algorithms")
+}
+
+// WO-133: Metric Verification Model (renamed from MilestoneVerification for clarity)
+model MetricVerification {
+  id                String   @id @default(cuid())
+  milestoneId       String
+  milestone         Milestone @relation("MetricVerifications", fields: [milestoneId], references: [id], onDelete: Cascade)
+  
+  algorithmId       String
+  algorithm         VerificationAlgorithm @relation(fields: [algorithmId], references: [id])
+  
+  dataPointId       String?
+  dataPoint         OracleDataPoint? @relation(fields: [dataPointId], references: [id])
+  
+  verificationResult VerificationResult
+  confidenceScore   Float    // 0-1 range
+  processingData    Json?    // Processing details and intermediate results
+  
+  // Timestamps
+  verifiedAt        DateTime @default(now())
+  createdAt         DateTime @default(now())
+  
+  @@index([milestoneId])
+  @@index([algorithmId])
+  @@index([verificationResult])
+  @@index([verifiedAt])
+  @@map("metric_verifications")
+}
+
+// WO-133: Verification Audit Model
+model VerificationAudit {
+  id                String   @id @default(cuid())
+  milestoneId       String
+  milestone         Milestone @relation("VerificationAudits", fields: [milestoneId], references: [id], onDelete: Cascade)
+  
+  action            VerificationAction
+  previousStatus    String?  // Previous verification status
+  newStatus         String?  // New verification status
+  triggeredBy       String   // User ID or system identifier
+  reason            String   @db.Text
+  metadata          Json?    // Additional audit metadata
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  
+  @@index([milestoneId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("verification_audits")
+}
+
+// WO-133: Verification Algorithm Type Enum
+enum VerificationAlgorithmType {
+  THRESHOLD_BASED
+  STATISTICAL_ANALYSIS
+  MACHINE_LEARNING
+  CONSENSUS_BASED
+  HYBRID
+}
+
+// WO-133: Verification Result Enum
+enum VerificationResult {
+  PENDING
+  VERIFIED
+  FAILED
+  DISPUTED
+}
+
+// WO-133: Verification Action Enum
+enum VerificationAction {
+  VERIFICATION_STARTED
+  VERIFICATION_COMPLETED
+  VERIFICATION_FAILED
+  MANUAL_REVIEW_REQUESTED
+  MANUAL_REVIEW_COMPLETED
+  ALGORITHM_UPDATED
+  STATUS_CHANGED
+  DISPUTE_RAISED
+  DISPUTE_RESOLVED
+}
+
+// WO-121: Fund Allocation Model
+model FundAllocation {
+  id                String   @id @default(cuid())
+  projectId         String
+  project           Project  @relation("ProjectFundAllocations", fields: [projectId], references: [id], onDelete: Cascade)
+  
+  milestoneId       String?
+  milestone         Milestone? @relation("MilestoneFundAllocations", fields: [milestoneId], references: [id])
+  
+  // Allocation amounts
+  totalAmount       Float    // Total allocated funds
+  allocatedAmount   Float    // Currently allocated
+  remainingBalance  Float    // Available for release
+  
+  // Allocation type
+  allocationType    AllocationType @default(MILESTONE_BASED)
+  
+  // Status
+  status            AllocationStatus @default(ACTIVE)
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  allocatedAt       DateTime @default(now())
+  
+  // Relations
+  releaseConditions ReleaseCondition[]
+  transactions      AutomatedTransaction[]
+  
+  @@index([projectId])
+  @@index([milestoneId])
+  @@index([status])
+  @@map("fund_allocations")
+}
+
+// WO-121: Release Condition Model
+model ReleaseCondition {
+  id                String   @id @default(cuid())
+  allocationId      String
+  allocation        FundAllocation @relation(fields: [allocationId], references: [id], onDelete: Cascade)
+  
+  // Condition configuration
+  conditionType     ConditionType
+  conditionData     Json     // Flexible condition parameters
+  
+  // Milestone criteria
+  requiresMilestoneCompletion Boolean @default(true)
+  milestoneId       String?
+  
+  // Verification requirements
+  requiresVerification Boolean @default(true)
+  minConfidenceScore Float   @default(0.8) // 0-1 range
+  
+  // Automated release rules
+  autoReleaseEnabled Boolean @default(false)
+  releaseDelay      Int?     // Delay in seconds after conditions met
+  
+  // Status
+  isActive          Boolean  @default(true)
+  lastChecked       DateTime?
+  conditionMet      Boolean  @default(false)
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([allocationId])
+  @@index([conditionMet])
+  @@index([isActive])
+  @@map("release_conditions")
+}
+
+// WO-121: Release Recipient Model
+model ReleaseRecipient {
+  id                String   @id @default(cuid())
+  
+  // Recipient identification
+  userId            String?
+  user              User?    @relation("RecipientUser", fields: [userId], references: [id])
+  
+  walletAddress     String   // Solana wallet address
+  
+  // Payment preferences
+  preferredNetwork  String   @default("solana-devnet")
+  notificationEmail String?  @db.VarChar(255)
+  notificationPhone String?  @db.VarChar(20)
+  
+  // Verification status
+  isVerified        Boolean  @default(false)
+  verifiedAt        DateTime?
+  verificationMethod String? // KYC method used
+  
+  // Metadata
+  recipientType     RecipientType @default(PROJECT_CREATOR)
+  metadata          Json?
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  transactions      AutomatedTransaction[]
+  
+  @@index([walletAddress])
+  @@index([userId])
+  @@index([isVerified])
+  @@map("release_recipients")
+}
+
+// WO-121: Automated Transaction Record Model
+model AutomatedTransaction {
+  id                String   @id @default(cuid())
+  allocationId      String
+  allocation        FundAllocation @relation(fields: [allocationId], references: [id])
+  
+  recipientId       String
+  recipient         ReleaseRecipient @relation(fields: [recipientId], references: [id])
+  
+  // Transaction details
+  amount            Float
+  transactionHash   String?  @unique // Blockchain transaction hash
+  transactionStatus AutomatedTransactionStatus @default(PENDING)
+  
+  // Release trigger
+  triggerEvent      TriggerEvent
+  triggerData       Json?    // Event-specific data
+  triggeredBy       String   // User ID or 'system'
+  
+  // Execution details
+  executedAt        DateTime?
+  confirmedAt       DateTime?
+  confirmations     Int      @default(0)
+  
+  // Error handling
+  error             String?  @db.Text
+  retryCount        Int      @default(0)
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([allocationId])
+  @@index([recipientId])
+  @@index([transactionStatus])
+  @@index([executedAt])
+  @@map("automated_transactions")
+}
+
+// WO-121: Allocation Type Enum
+enum AllocationType {
+  MILESTONE_BASED
+  TIME_BASED
+  PERFORMANCE_BASED
+  HYBRID
+}
+
+// WO-121: Allocation Status Enum
+enum AllocationStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+// WO-121: Condition Type Enum
+enum ConditionType {
+  MILESTONE_COMPLETION
+  TIME_THRESHOLD
+  ORACLE_DATA_THRESHOLD
+  MULTI_CONDITION
+  MANUAL_APPROVAL
+}
+
+// WO-121: Recipient Type Enum
+enum RecipientType {
+  PROJECT_CREATOR
+  CONTRACTOR
+  SUPPLIER
+  PARTNER
+  OTHER
+}
+
+// WO-121: Automated Transaction Status Enum
+enum AutomatedTransactionStatus {
+  PENDING
+  PROCESSING
+  CONFIRMED
+  FAILED
+  CANCELLED
+}
+
+// WO-121: Trigger Event Enum
+enum TriggerEvent {
+  MILESTONE_COMPLETED
+  VERIFICATION_PASSED
+  ORACLE_THRESHOLD_MET
+  TIME_ELAPSED
+  MANUAL_TRIGGER
+  SCHEDULED_RELEASE
+}
+
+// WO-141: Governance Proposal Model
+model Proposal {
+  id                String   @id @default(cuid())
+  
+  // Proposal details
+  title             String   @db.VarChar(200)
+  description       String   @db.Text
+  proposalType      ProposalType @default(GENERAL)
+  
+  // Proposer
+  proposerId        String
+  proposer          User     @relation("ProposalCreator", fields: [proposerId], references: [id])
+  
+  // WO-149: Project-specific governance
+  targetProjectId   String?
+  targetProject     Project? @relation("ProjectProposals", fields: [targetProjectId], references: [id], onDelete: Cascade)
+  
+  proposalTypeSpecificData Json?  // Milestone changes, fund reallocations, etc.
+  
+  // Status
+  status            ProposalStatus @default(PENDING)
+  
+  // Realms DAO integration
+  realmsProposalId  String?  @unique // Realms DAO proposal public key
+  realmsGovernance  String?  // Realms governance address
+  onChainVotingUrl  String?  // Link to on-chain voting
+  
+  // Voting configuration
+  votingStartsAt    DateTime?
+  votingEndsAt      DateTime?
+  minQuorum         Int      @default(10) // Minimum votes required (%)
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  executedAt        DateTime?
+  
+  // Relations
+  votes             Vote[]
+  
+  @@index([proposerId])
+  @@index([status])
+  @@index([votingEndsAt])
+  @@index([createdAt])
+  @@index([targetProjectId]) // WO-149: Query by project
+  @@index([proposalType, targetProjectId]) // WO-149: Project-specific queries
+  @@map("proposals")
+}
+
+// WO-141: Vote Model
+model Vote {
+  id                String   @id @default(cuid())
+  proposalId        String
+  proposal          Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  
+  voterId           String
+  voter             User     @relation("VoterVotes", fields: [voterId], references: [id])
+  
+  // Vote details
+  support           Boolean  // true = for, false = against
+  weight            Int      @default(1) // Voting power/weight
+  
+  // Token-gating
+  tokenBalance      Float?   // Voter's token balance at time of vote
+  tokenSymbol       String?  // Token used for voting power
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  
+  @@unique([proposalId, voterId])
+  @@index([proposalId])
+  @@index([voterId])
+  @@index([createdAt])
+  @@map("votes")
+}
+
+// WO-141: Governance Settings Model
+model GovernanceSettings {
+  id                String   @id @default(cuid())
+  
+  // System-wide governance configuration
+  minQuorum         Int      @default(10) // Minimum quorum percentage
+  votingPeriodDays  Int      @default(7)  // Voting period in days
+  proposalThreshold Int      @default(100) // Minimum tokens to create proposal
+  
+  // Token configuration
+  governanceToken   String?  // Governance token mint address
+  tokenDecimals     Int      @default(9)
+  
+  // Advanced settings
+  executionDelay    Int      @default(86400) // Delay before execution (seconds)
+  minTokensToVote   Int      @default(1) // Minimum tokens required to vote
+  
+  // Metadata
+  isActive          Boolean  @default(true)
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@map("governance_settings")
+}
+
+// WO-141: Proposal Type Enum
+enum ProposalType {
+  GENERAL
+  PARAMETER_CHANGE
+  TREASURY_ALLOCATION
+  PROTOCOL_UPGRADE
+  EMERGENCY_ACTION
+}
+
+// WO-141: Proposal Status Enum
+enum ProposalStatus {
+  PENDING
+  ACTIVE
+  PASSED
+  FAILED
+  EXECUTED
+  CANCELLED
+  EXPIRED
 }

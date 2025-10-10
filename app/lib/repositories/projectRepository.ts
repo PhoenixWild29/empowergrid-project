@@ -4,14 +4,17 @@ import { Project, ProjectStatus, Prisma } from '@prisma/client';
 export interface CreateProjectData {
   title: string;
   description: string;
+  location: string;
   category: string;
   tags: string[];
   creatorId: string;
   targetAmount: number;
+  energyCapacity?: number;
   milestoneCount: number;
   duration: number;
   programId: string;
   projectPDA: string;
+  escrowAddress?: string;
   images?: string[];
   videoUrl?: string;
 }

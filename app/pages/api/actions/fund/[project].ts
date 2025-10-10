@@ -12,9 +12,10 @@ import * as anchor from '@coral-xyz/anchor';
 // defaults fall back to Solana devnet.  In production, override these with
 // your cluster and deployed program.
 const RPC_URL = process.env.RPC_URL || 'https://api.devnet.solana.com';
-const PROGRAM_ID = new PublicKey(
-  process.env.PROGRAM_ID || 'YourProgramIdHereReplaceThisWithActualID'
-);
+// Use a valid placeholder program ID (system program)
+const PROGRAM_ID = process.env.PROGRAM_ID
+  ? new PublicKey(process.env.PROGRAM_ID)
+  : new PublicKey('11111111111111111111111111111111');
 
 /**
  * Simplified fund project API endpoint

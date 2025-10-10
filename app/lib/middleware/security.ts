@@ -1,291 +1,311 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextApiRequest, NextApiResponse } from 'next';
 
-// Security headers configuration
-export const securityHeaders = {
-  // Prevent clickjacking attacks
-  'X-Frame-Options': 'DENY',
-
-  // Prevent MIME type sniffing
-  'X-Content-Type-Options': 'nosniff',
-
-  // Control referrer information
-  'Referrer-Policy': 'strict-origin-when-cross-origin',
-
-  // Restrict browser features
-  'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()',
-
-  // Content Security Policy
-  'Content-Security-Policy': `
-    default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net;
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-    font-src 'self' https://fonts.gstatic.com;
-    img-src 'self' data: https: blob:;
-    connect-src 'self' https://api.mainnet-beta.solana.com https://api.devnet.solana.com wss://api.mainnet-beta.solana.com wss://api.devnet.solana.com;
-    frame-src 'none';
-    object-src 'none';
-    base-uri 'self';
-    form-action 'self';
-  `.replace(/\s+/g, ' ').trim(),
-
-  // HSTS - force HTTPS
-  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
-
-  // Prevent caching of sensitive content
-  'Cache-Control': 'no-cache, no-store, must-revalidate',
-  'Pragma': 'no-cache',
-  'Expires': '0'
-};
-
-// Rate limiting configuration
-const RATE_LIMITS = {
-  AUTH: { max: 5, window: 15 * 60 * 1000 }, // 5 attempts per 15 minutes
-  API: { max: 100, window: 15 * 60 * 1000 }, // 100 requests per 15 minutes
-  FUNDING: { max: 20, window: 60 * 60 * 1000 }, // 20 funding operations per hour
-};
-
-// Simple in-memory rate limiting (for production, use Redis)
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
-
-function checkRateLimit(
-  key: string,
-  maxRequests: number,
-  windowMs: number
-): { allowed: boolean; remaining: number; resetTime: number } {
-  const now = Date.now();
-  const existing = rateLimitStore.get(key);
-
-  if (!existing || now > existing.resetTime) {
-    // Reset or create new window
-    rateLimitStore.set(key, {
-      count: 1,
-      resetTime: now + windowMs
-    });
-    return { allowed: true, remaining: maxRequests - 1, resetTime: now + windowMs };
-  }
-
-  if (existing.count >= maxRequests) {
-    return { allowed: false, remaining: 0, resetTime: existing.resetTime };
-  }
-
-  existing.count++;
-  return {
-    allowed: true,
-    remaining: maxRequests - existing.count,
-    resetTime: existing.resetTime
-  };
-}
-
-// Clean up expired rate limit entries periodically
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, data] of rateLimitStore.entries()) {
-    if (now > data.resetTime) {
-      rateLimitStore.delete(key);
-    }
-  }
-}, 60 * 1000); // Clean up every minute
-
-export function applySecurityHeaders(response: NextResponse): NextResponse {
-  Object.entries(securityHeaders).forEach(([key, value]) => {
-    response.headers.set(key, value);
-  });
-  return response;
-}
-
-export function handleRateLimit(
-  request: NextRequest,
-  endpoint: keyof typeof RATE_LIMITS
-): { allowed: boolean; response?: NextResponse } {
-  const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown';
-  const userAgent = request.headers.get('user-agent') || '';
-  const key = `${ip}:${endpoint}:${userAgent}`;
-
-  const limit = RATE_LIMITS[endpoint];
-  const result = checkRateLimit(key, limit.max, limit.window);
-
-  if (!result.allowed) {
-    const response = NextResponse.json(
-      {
-        success: false,
-        message: 'Too many requests. Please try again later.',
-        retryAfter: Math.ceil((result.resetTime - Date.now()) / 1000)
-      },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': Math.ceil((result.resetTime - Date.now()) / 1000).toString(),
-          'X-RateLimit-Limit': limit.max.toString(),
-          'X-RateLimit-Remaining': '0',
-          'X-RateLimit-Reset': result.resetTime.toString()
-        }
-      }
-    );
-    return { allowed: false, response };
-  }
-
-  return { allowed: true };
-}
-
-// Input sanitization utilities
-export function sanitizeInput(input: string): string {
-  if (typeof input !== 'string') return '';
-
-  return input
-    .trim()
-    // Remove potential script tags
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    // Remove potential HTML tags
-    .replace(/<[^>]*>/g, '')
-    // Remove null bytes
-    .replace(/\0/g, '')
-    // Limit length to prevent buffer overflow attempts
-    .substring(0, 10000);
-}
-
-export function validateEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email) && email.length <= 254;
-}
-
-export function validateWalletAddress(address: string): boolean {
-  // Solana address validation (base58, 32-44 characters)
-  const base58Regex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
-  return base58Regex.test(address);
-}
-
-// SQL injection prevention (additional layer)
-export function isSqlInjectionAttempt(input: string): boolean {
-  const sqlPatterns = [
-    /(\b(union|select|insert|delete|update|drop|create|alter|exec|execute)\b)/i,
-    /(-{2}|\/\*|\*\/)/,
-    /('|(\\x27)|(\\x2D\\x2D)|(\\x2F\\x2A)|(\\x2A\\x2F))/i,
-    /(<script|javascript:|vbscript:|onload=|onerror=)/i
-  ];
-
-  return sqlPatterns.some(pattern => pattern.test(input));
-}
-
-// XSS prevention
-export function containsXssPayload(input: string): boolean {
-  const xssPatterns = [
-    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
-    /javascript:/gi,
-    /vbscript:/gi,
-    /onload=/gi,
-    /onerror=/gi,
-    /<iframe/gi,
-    /<object/gi,
-    /<embed/gi
-  ];
-
-  return xssPatterns.some(pattern => pattern.test(input));
-}
-
-// File upload validation
-export const FILE_UPLOAD_CONFIG = {
-  maxSize: 5 * 1024 * 1024, // 5MB
-  allowedTypes: [
-    'image/jpeg',
-    'image/png',
-    'image/webp',
-    'image/gif'
+/**
+ * Security configuration for the application
+ */
+export const SECURITY_CONFIG = {
+  // Allowed origins for CORS (configure based on environment)
+  ALLOWED_ORIGINS: [
+    process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+    'https://empowergrid.io',
+    'https://www.empowergrid.io',
   ],
-  allowedExtensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif']
+  
+  // Content Security Policy directives
+  CSP_DIRECTIVES: {
+    'default-src': ["'self'"],
+    'script-src': ["'self'", "'unsafe-eval'", "'unsafe-inline'"],
+    'style-src': ["'self'", "'unsafe-inline'"],
+    'img-src': ["'self'", 'data:', 'https:'],
+    'font-src': ["'self'", 'data:'],
+    'connect-src': ["'self'", 'https://api.devnet.solana.com', 'https://api.mainnet-beta.solana.com'],
+    'frame-ancestors': ["'none'"],
+  },
+  
+  // HSTS configuration
+  HSTS_MAX_AGE: 31536000, // 1 year in seconds
+  
+  // Rate limiting configuration
+  RATE_LIMIT: {
+    WINDOW_MS: 15 * 60 * 1000, // 15 minutes
+    MAX_REQUESTS: 100, // Max requests per window
+  },
 };
 
-export function validateFileUpload(
-  file: { size: number; type: string; name: string }
-): { valid: boolean; error?: string } {
-  // Check file size
-  if (file.size > FILE_UPLOAD_CONFIG.maxSize) {
-    return { valid: false, error: 'File size exceeds maximum limit of 5MB' };
-  }
+/**
+ * Type for Next.js API middleware
+ */
+export type NextApiMiddleware = (
+  req: NextApiRequest,
+  res: NextApiResponse,
+  next: () => void
+) => void | Promise<void>;
 
-  // Check file type
-  if (!FILE_UPLOAD_CONFIG.allowedTypes.includes(file.type)) {
-    return { valid: false, error: 'File type not allowed' };
+/**
+ * Apply security headers to API responses
+ * 
+ * Headers applied:
+ * - Content-Security-Policy
+ * - Strict-Transport-Security (HSTS)
+ * - X-Frame-Options
+ * - X-Content-Type-Options
+ * - X-XSS-Protection
+ * - Referrer-Policy
+ * 
+ * @param req - Next.js API request
+ * @param res - Next.js API response
+ */
+export function applySecurityHeaders(
+  req: NextApiRequest,
+  res: NextApiResponse
+): void {
+  // Content Security Policy
+  const cspHeader = Object.entries(SECURITY_CONFIG.CSP_DIRECTIVES)
+    .map(([key, values]) => `${key} ${values.join(' ')}`)
+    .join('; ');
+  
+  res.setHeader('Content-Security-Policy', cspHeader);
+  
+  // Strict-Transport-Security (HSTS)
+  // Only apply in production with HTTPS
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader(
+      'Strict-Transport-Security',
+      `max-age=${SECURITY_CONFIG.HSTS_MAX_AGE}; includeSubDomains; preload`
+    );
   }
-
-  // Check file extension
-  const extension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
-  if (!FILE_UPLOAD_CONFIG.allowedExtensions.includes(extension)) {
-    return { valid: false, error: 'File extension not allowed' };
-  }
-
-  return { valid: true };
+  
+  // X-Frame-Options - Prevent clickjacking
+  res.setHeader('X-Frame-Options', 'DENY');
+  
+  // X-Content-Type-Options - Prevent MIME type sniffing
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  
+  // X-XSS-Protection - Enable browser XSS filter
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  
+  // Referrer-Policy - Control referrer information
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // Remove X-Powered-By header to avoid exposing server technology
+  res.removeHeader('X-Powered-By');
 }
 
-// CORS configuration
-export const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': process.env.NODE_ENV === 'production'
-    ? process.env.ALLOWED_ORIGINS || 'https://empowergrid.com'
-    : '*',
-  'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Requested-With',
-  'Access-Control-Allow-Credentials': 'true',
-  'Access-Control-Max-Age': '86400' // 24 hours
-};
-
-export function handleCors(request: NextRequest): NextResponse | null {
+/**
+ * Configure CORS headers for API endpoints
+ * 
+ * @param req - Next.js API request
+ * @param res - Next.js API response
+ * @returns boolean - true if origin is allowed, false otherwise
+ */
+export function configureCORS(
+  req: NextApiRequest,
+  res: NextApiResponse
+): boolean {
+  const origin = req.headers.origin;
+  
+  // Check if origin is allowed
+  const isAllowedOrigin = 
+    !origin || 
+    SECURITY_CONFIG.ALLOWED_ORIGINS.includes(origin) ||
+    (process.env.NODE_ENV === 'development' && origin.startsWith('http://localhost'));
+  
+  if (isAllowedOrigin && origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  
+  // Set other CORS headers
+  res.setHeader(
+    'Access-Control-Allow-Methods',
+    'GET, POST, PUT, DELETE, OPTIONS'
+  );
+  
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Content-Type, Authorization, X-Requested-With'
+  );
+  
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
+  res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
+  
   // Handle preflight requests
-  if (request.method === 'OPTIONS') {
-    return new NextResponse(null, {
-      status: 200,
-      headers: CORS_HEADERS
-    });
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return false; // Don't proceed with handler
   }
-
-  return null;
+  
+  return isAllowedOrigin;
 }
 
-// Security monitoring
-export interface SecurityEvent {
-  type: 'rate_limit' | 'suspicious_input' | 'auth_failure' | 'file_upload_attempt';
-  ip: string;
-  userAgent: string;
-  path: string;
-  userId?: string;
-  details?: any;
-  timestamp: Date;
-}
-
-export class SecurityMonitor {
-  private events: SecurityEvent[] = [];
-  private readonly maxEvents = 1000;
-
-  logEvent(event: Omit<SecurityEvent, 'timestamp'>): void {
-    const securityEvent: SecurityEvent = {
-      ...event,
-      timestamp: new Date()
-    };
-
-    this.events.push(securityEvent);
-
-    // Keep only recent events
-    if (this.events.length > this.maxEvents) {
-      this.events = this.events.slice(-this.maxEvents);
+/**
+ * Simple in-memory rate limiter
+ * In production, use Redis or a dedicated rate limiting service
+ */
+class RateLimiter {
+  private requests: Map<string, number[]> = new Map();
+  
+  /**
+   * Check if a client has exceeded rate limit
+   * 
+   * @param identifier - Client identifier (IP address or user ID)
+   * @param maxRequests - Maximum requests allowed
+   * @param windowMs - Time window in milliseconds
+   * @returns boolean - true if limit exceeded, false otherwise
+   */
+  isRateLimited(
+    identifier: string,
+    maxRequests: number = SECURITY_CONFIG.RATE_LIMIT.MAX_REQUESTS,
+    windowMs: number = SECURITY_CONFIG.RATE_LIMIT.WINDOW_MS
+  ): boolean {
+    const now = Date.now();
+    const windowStart = now - windowMs;
+    
+    // Get existing requests for this identifier
+    let requests = this.requests.get(identifier) || [];
+    
+    // Filter out requests outside the current window
+    requests = requests.filter(timestamp => timestamp > windowStart);
+    
+    // Check if limit exceeded
+    if (requests.length >= maxRequests) {
+      return true;
     }
-
-    // In production, send to logging service
-    console.warn('Security Event:', securityEvent);
+    
+    // Add current request
+    requests.push(now);
+    this.requests.set(identifier, requests);
+    
+    // Cleanup old entries periodically
+    this.cleanup(windowStart);
+    
+    return false;
   }
-
-  getEvents(type?: SecurityEvent['type'], limit = 100): SecurityEvent[] {
-    let filtered = this.events;
-    if (type) {
-      filtered = filtered.filter(event => event.type === type);
+  
+  /**
+   * Clean up old rate limit entries
+   */
+  private cleanup(windowStart: number): void {
+    // Only cleanup occasionally to avoid performance impact
+    if (Math.random() > 0.99) { // 1% chance
+      this.requests.forEach((timestamps, key) => {
+        const validTimestamps = timestamps.filter(ts => ts > windowStart);
+        if (validTimestamps.length === 0) {
+          this.requests.delete(key);
+        } else {
+          this.requests.set(key, validTimestamps);
+        }
+      });
     }
-    return filtered.slice(-limit);
   }
-
-  getStats(): Record<string, number> {
-    const stats: Record<string, number> = {};
-    this.events.forEach(event => {
-      stats[event.type] = (stats[event.type] || 0) + 1;
-    });
-    return stats;
+  
+  /**
+   * Reset rate limit for a specific identifier
+   */
+  reset(identifier: string): void {
+    this.requests.delete(identifier);
+  }
+  
+  /**
+   * Clear all rate limit data
+   */
+  clear(): void {
+    this.requests.clear();
   }
 }
 
-export const securityMonitor = new SecurityMonitor();
+// Singleton instance
+export const rateLimiter = new RateLimiter();
+
+/**
+ * Apply rate limiting to API requests
+ * 
+ * @param req - Next.js API request
+ * @param res - Next.js API response
+ * @returns boolean - true if request should proceed, false if rate limited
+ */
+export function applyRateLimit(
+  req: NextApiRequest,
+  res: NextApiResponse
+): boolean {
+  // Get client identifier (IP address or user ID from token)
+  const identifier = getClientIdentifier(req);
+  
+  // Check rate limit
+  if (rateLimiter.isRateLimited(identifier)) {
+    res.status(429).json({
+      error: 'Too many requests',
+      message: 'Rate limit exceeded. Please try again later.',
+      retryAfter: Math.ceil(SECURITY_CONFIG.RATE_LIMIT.WINDOW_MS / 1000),
+    });
+    return false;
+  }
+  
+  // Add rate limit headers
+  res.setHeader('X-RateLimit-Limit', SECURITY_CONFIG.RATE_LIMIT.MAX_REQUESTS.toString());
+  res.setHeader('X-RateLimit-Window', SECURITY_CONFIG.RATE_LIMIT.WINDOW_MS.toString());
+  
+  return true;
+}
+
+/**
+ * Get client identifier for rate limiting
+ * Uses IP address, falling back to user agent
+ * 
+ * @param req - Next.js API request
+ * @returns string - Client identifier
+ */
+export function getClientIdentifier(req: NextApiRequest): string {
+  // Try to get real IP from headers (for proxied requests)
+  const forwardedFor = req.headers['x-forwarded-for'];
+  const realIp = req.headers['x-real-ip'];
+  
+  if (typeof forwardedFor === 'string') {
+    return forwardedFor.split(',')[0].trim();
+  }
+  
+  if (typeof realIp === 'string') {
+    return realIp;
+  }
+  
+  // Fallback to socket address
+  return req.socket.remoteAddress || 'unknown';
+}
+
+/**
+ * Comprehensive security middleware that applies all security measures
+ * Use this as the main security middleware for API routes
+ * 
+ * @param req - Next.js API request
+ * @param res - Next.js API response
+ * @returns boolean - true if request should proceed, false otherwise
+ */
+export function securityMiddleware(
+  req: NextApiRequest,
+  res: NextApiResponse
+): boolean {
+  // Apply security headers
+  applySecurityHeaders(req, res);
+  
+  // Configure CORS
+  const corsAllowed = configureCORS(req, res);
+  if (!corsAllowed || req.method === 'OPTIONS') {
+    return false;
+  }
+  
+  // Apply rate limiting
+  const rateLimitAllowed = applyRateLimit(req, res);
+  if (!rateLimitAllowed) {
+    return false;
+  }
+  
+  return true;
+}
+
+/**
+ * Export for testing
+ */
+export const __TEST__ = {
+  rateLimiter,
+  getClientIdentifier,
+};

@@ -1,6 +1,14 @@
 use anchor_lang::prelude::*;
 use solana_program::{program::invoke, system_instruction};
 
+// WO-90: Import escrow state data structures
+pub mod state;
+pub use state::*;
+
+// WO-109: Import upgrade management structures
+pub mod upgrade;
+pub use upgrade::*;
+
 declare_id!("YourProgramIdHereReplaceThisWithActualID");
 
 /// EmpowerGRID is a milestone‑based escrow program for funding and deploying
