@@ -1,0 +1,12 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📚 Documentation
+    url: https://github.com/PhoenixWild29/empowergrid-project/tree/master/app
+    about: Check our comprehensive documentation
+  - name: 💬 GitHub Discussions
+    url: https://github.com/PhoenixWild29/empowergrid-project/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: 🔒 Security Issue
+    url: mailto:security@empowergrid.com
+    about: Report security vulnerabilities privately
+

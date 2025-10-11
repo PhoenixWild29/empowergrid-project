@@ -1,0 +1,66 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+    
+    - name: Install dependencies
+      working-directory: ./app
+      run: npm ci
+    
+    - name: Build application
+      working-directory: ./app
+      run: npm run build
+      env:
+        SKIP_ENV_VALIDATION: true
+    
+    - name: Generate changelog
+      id: changelog
+      run: |
+        echo "## What's Changed" > CHANGELOG.md
+        git log $(git describe --tags --abbrev=0 HEAD^)..HEAD --pretty=format:"- %s (%h)" >> CHANGELOG.md
+    
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref_name }}
+        body_path: CHANGELOG.md
+        draft: false
+        prerelease: false
+    
+    - name: Build artifacts
+      working-directory: ./app
+      run: |
+        tar -czf ../empowergrid-${{ github.ref_name }}.tar.gz .next package.json package-lock.json prisma/
+    
+    - name: Upload Release Assets
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./empowergrid-${{ github.ref_name }}.tar.gz
+        asset_name: empowergrid-${{ github.ref_name }}.tar.gz
+        asset_content_type: application/gzip
+
