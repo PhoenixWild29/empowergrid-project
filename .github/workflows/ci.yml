@@ -32,6 +32,8 @@ jobs:
     - name: Generate Prisma Client
       working-directory: ./app
       run: npx prisma generate
+      env:
+        DATABASE_URL: "postgresql://user:pass@localhost:5432/test?schema=public"
     
     - name: Run type check
       working-directory: ./app
@@ -52,6 +54,12 @@ jobs:
       run: npm run build
       env:
         SKIP_ENV_VALIDATION: true
+        DATABASE_URL: "postgresql://user:pass@localhost:5432/test?schema=public"
+        SOLANA_NETWORK: "devnet"
+        SOLANA_RPC_URL: "https://api.devnet.solana.com"
+        PROGRAM_ID: "11111111111111111111111111111111"
+        JWT_SECRET: "test-secret-key-for-ci-minimum-32-characters"
+        ENCRYPTION_KEY: "test-encryption-key-32-characters"
     
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
