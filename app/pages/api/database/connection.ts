@@ -1,8 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
+import { prisma, executeWithRetry } from '../../../lib/prisma';
 import * as z from 'zod';
-
-const prisma = new PrismaClient();
 
 // Zod schema for connection configuration (read-only for security)
 const ConnectionConfigSchema = z.object({
@@ -50,17 +48,25 @@ export default async function handler(
 
       // Get connection pool status
       try {
-        // Test connection
-        await prisma.$queryRaw`SELECT 1`;
+        // Test connection with retry
+        await executeWithRetry(async () => {
+          const queryPromise = prisma.$queryRaw`SELECT 1`;
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Connection timeout')), 5000)
+          );
+          return Promise.race([queryPromise, timeoutPromise]);
+        });
         
-        // Get pool stats
-        const poolStatsResult = await prisma.$queryRaw<Array<{ max_conn: number, used: number }>>`
-          SELECT 
-            setting::int as max_conn,
-            (SELECT count(*) FROM pg_stat_activity WHERE datname = current_database()) as used
-          FROM pg_settings 
-          WHERE name = 'max_connections'
-        `;
+        // Get pool stats with retry
+        const poolStatsResult = await executeWithRetry(async () =>
+          prisma.$queryRaw<Array<{ max_conn: number, used: number }>>`
+            SELECT 
+              setting::int as max_conn,
+              (SELECT count(*) FROM pg_stat_activity WHERE datname = current_database()) as used
+            FROM pg_settings 
+            WHERE name = 'max_connections'
+          `
+        );
         
         const poolStats = poolStatsResult[0] || { max_conn: 100, used: 0 };
 
@@ -111,13 +117,21 @@ export default async function handler(
       const startTime = Date.now();
       
       try {
-        // Test database connection
-        await prisma.$queryRaw`SELECT 1 as test`;
+        // Test database connection with retry
+        await executeWithRetry(async () => {
+          const testQueryPromise = prisma.$queryRaw`SELECT 1 as test`;
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Connection timeout')), 5000)
+          );
+          return Promise.race([testQueryPromise, timeoutPromise]);
+        });
         
-        // Test write capability
-        const testResult = await prisma.$queryRaw`
-          SELECT current_database() as db, current_user as usr, version() as ver
-        `;
+        // Test write capability with retry
+        const testResult = await executeWithRetry(async () =>
+          prisma.$queryRaw<Array<{ db: string, usr: string, ver: string }>>`
+            SELECT current_database() as db, current_user as usr, version() as ver
+          `
+        ) as Array<{ db: string, usr: string, ver: string }>;
         
         const responseTime = Date.now() - startTime;
 
@@ -127,9 +141,9 @@ export default async function handler(
           message: 'Database connection test successful',
           details: {
             responseTime: `${responseTime}ms`,
-            database: (testResult as any)[0]?.db,
-            user: (testResult as any)[0]?.usr,
-            version: (testResult as any)[0]?.ver?.split(',')[0],
+            database: testResult[0]?.db,
+            user: testResult[0]?.usr,
+            version: testResult[0]?.ver?.split(',')[0],
           },
           timestamp: new Date().toISOString(),
         });

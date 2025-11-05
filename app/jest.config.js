@@ -34,10 +34,15 @@ const customJestConfig = {
     '<rootDir>/**/*.{test,spec}.{js,jsx,ts,tsx}',
   ],
   moduleDirectories: ['node_modules', '<rootDir>/'],
-  testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/'],
+  testPathIgnorePatterns: [
+    '<rootDir>/.next/',
+    '<rootDir>/node_modules/',
+    '<rootDir>/__tests__/e2e/', // E2E tests run separately with Playwright
+    '<rootDir>/__tests__/utils/mocks.ts', // Exclude utility file from test discovery
+  ],
   maxWorkers: 2, // Limit workers to avoid memory issues
   transformIgnorePatterns: [
-    'node_modules/(?!(uuid|@solana|@noble|@coral-xyz)/)',
+    'node_modules/(?!(nanoid|uuid|@solana|@noble|@coral-xyz)/)',
   ],
 };
 

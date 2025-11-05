@@ -1,7 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma, executeWithRetry } from '../../../lib/prisma';
 
 /**
  * WO-167 & WO-166: PostgreSQL Integration Layer - Database Status API
@@ -22,14 +20,22 @@ export default async function handler(
       const startTime = Date.now();
       
       try {
-        // Test connection by running a simple query
-        await prisma.$queryRaw`SELECT 1 as test`;
+        // Test connection with retry logic
+        await executeWithRetry(async () => {
+          const queryPromise = prisma.$queryRaw`SELECT 1 as test`;
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Connection timeout')), 5000)
+          );
+          return Promise.race([queryPromise, timeoutPromise]);
+        });
         const responseTime = Date.now() - startTime;
 
-        // Get database size (PostgreSQL-specific query)
-        const sizeResult = await prisma.$queryRaw<Array<{ size: bigint }>>`
-          SELECT pg_database_size(current_database()) as size
-        `;
+        // Get database size (PostgreSQL-specific query) with retry
+        const sizeResult = await executeWithRetry(async () => 
+          prisma.$queryRaw<Array<{ size: bigint }>>`
+            SELECT pg_database_size(current_database()) as size
+          `
+        );
         const dbSizeBytes = Number(sizeResult[0]?.size || 0);
         
         // Convert to appropriate unit (MB/GB/TB)
@@ -54,24 +60,30 @@ export default async function handler(
           dbSize = `${dbSizeValue.toFixed(2)} TB`;
         }
 
-        // Get active connections count
-        const connectionsResult = await prisma.$queryRaw<Array<{ count: bigint }>>`
-          SELECT count(*) as count 
-          FROM pg_stat_activity 
-          WHERE state = 'active'
-        `;
+        // Get active connections count with retry
+        const connectionsResult = await executeWithRetry(async () =>
+          prisma.$queryRaw<Array<{ count: bigint }>>`
+            SELECT count(*) as count 
+            FROM pg_stat_activity 
+            WHERE state = 'active'
+          `
+        );
         const activeConnections = Number(connectionsResult[0]?.count || 0);
 
-        // Get total connections
-        const totalConnectionsResult = await prisma.$queryRaw<Array<{ count: bigint }>>`
-          SELECT count(*) as count FROM pg_stat_activity
-        `;
+        // Get total connections with retry
+        const totalConnectionsResult = await executeWithRetry(async () =>
+          prisma.$queryRaw<Array<{ count: bigint }>>`
+            SELECT count(*) as count FROM pg_stat_activity
+          `
+        );
         const totalConnections = Number(totalConnectionsResult[0]?.count || 0);
 
-        // Get database version
-        const versionResult = await prisma.$queryRaw<Array<{ version: string }>>`
-          SELECT version() as version
-        `;
+        // Get database version with retry
+        const versionResult = await executeWithRetry(async () =>
+          prisma.$queryRaw<Array<{ version: string }>>`
+            SELECT version() as version
+          `
+        );
         const dbVersion = versionResult[0]?.version || 'Unknown';
 
         return res.status(200).json({

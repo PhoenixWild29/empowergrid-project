@@ -145,13 +145,37 @@ describe('utilityFunction', () => {
 });
 ```
 
-## Future Test Additions
+## Test Coverage
 
-- **Integration Tests**: Full user workflows
-- **E2E Tests**: Playwright/Cypress for browser testing
-- **Contract Tests**: Anchor program instruction testing
-- **Performance Tests**: Load and stress testing
-- **Accessibility Tests**: a11y compliance
+### Services Tests
+- ✅ **AuthService**: Authentication and session management
+- ✅ **ProjectService**: Project CRUD operations
+- ✅ **GovernanceService**: Proposals and voting
+- ✅ **OracleService**: Oracle data fetching and verification
+- ✅ **ReputationService**: User reputation management
+
+### API Endpoint Tests
+- ✅ **Projects API**: Create, list, filter projects
+- ✅ **Auth API**: Login, logout, session management
+- ✅ **Governance API**: Proposals and voting endpoints
+
+### Integration Tests
+- ✅ **Funding Workflow**: Complete funding flow from creation to release
+- ✅ **Governance Workflow**: Proposal creation, voting, execution
+- ✅ **Oracle Verification**: Milestone verification with oracles
+
+### E2E Tests (Playwright)
+- ✅ **Homepage**: Navigation and UI elements
+- ✅ **Projects Page**: Listing, filtering, search
+- ✅ **Wallet Connection**: Authentication flow
+
+## Additional Test Resources
+
+- **Contract Tests**: Anchor program instruction testing (planned)
+- **Performance Tests**: Load and stress testing (planned)
+- **Accessibility Tests**: a11y compliance (planned)
+
+See [TESTING_GUIDE.md](./TESTING_GUIDE.md) for comprehensive testing documentation.
 
 ## CI/CD Integration
 

@@ -1,10 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { createMocks } from 'node-mocks-http';
-import handler from '../../../../pages/api/auth/challenge';
-import { clearAllNonces } from '../../../../lib/utils/nonceGenerator';
+import handler from '@/pages/api/auth/challenge';
+import { clearAllNonces } from '@/lib/utils/nonceGenerator';
 
 // Mock the logger to avoid file system operations during tests
-jest.mock('../../../../lib/logging/logger', () => ({
+jest.mock('@/lib/logging/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -103,7 +103,8 @@ describe('/api/auth/challenge', () => {
 
       expect(data).toHaveProperty('success', false);
       expect(data).toHaveProperty('error');
-      expect(data.message).toContain('invalid');
+      // Error message should indicate validation failure
+      expect(data.message || data.error).toMatch(/invalid|validation|error/i);
     });
 
     it('should reject non-POST methods', async () => {

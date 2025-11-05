@@ -86,12 +86,14 @@ describe('Authentication Flow Integration', () => {
     test('should authenticate user when wallet connects', async () => {
       const user = userEvent.setup();
 
-      render(
-        <AuthProvider>
-          <AuthStatus />
-          <WalletConnect />
-        </AuthProvider>
-      );
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <AuthStatus />
+            <WalletConnect />
+          </AuthProvider>
+        );
+      });
 
       // Initially not authenticated
       expect(screen.getByTestId('auth-status')).toHaveTextContent(
@@ -100,28 +102,36 @@ describe('Authentication Flow Integration', () => {
 
       // Click connect wallet
       const connectButton = screen.getByText('Connect Wallet');
-      await user.click(connectButton);
+      await act(async () => {
+        await user.click(connectButton);
+      });
 
       // Should trigger wallet connection
       expect(mockPhantomWallet.connect).toHaveBeenCalled();
 
       // Should show connecting state
-      expect(screen.getByText('Connecting...')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Connecting...')).toBeInTheDocument();
+      });
     });
 
     test('should logout user when wallet disconnects', async () => {
       const user = userEvent.setup();
 
-      render(
-        <AuthProvider>
-          <AuthStatus />
-          <WalletConnect />
-        </AuthProvider>
-      );
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <AuthStatus />
+            <WalletConnect />
+          </AuthProvider>
+        );
+      });
 
       // Connect wallet first
       const connectButton = screen.getByText('Connect Wallet');
-      await user.click(connectButton);
+      await act(async () => {
+        await user.click(connectButton);
+      });
 
       await waitFor(() => {
         expect(mockPhantomWallet.connect).toHaveBeenCalled();
@@ -129,19 +139,23 @@ describe('Authentication Flow Integration', () => {
 
       // For this test, we'll just verify the disconnect button appears
       // (full logout flow would require more complex mocking)
-      expect(screen.getByText('Connecting...')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Connecting...')).toBeInTheDocument();
+      });
     });
   });
 
   describe('Protected Routes', () => {
     test('should redirect unauthenticated users', async () => {
-      render(
-        <AuthProvider>
-          <ProtectedRoute>
-            <ProtectedContent />
-          </ProtectedRoute>
-        </AuthProvider>
-      );
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <ProtectedRoute>
+              <ProtectedContent />
+            </ProtectedRoute>
+          </AuthProvider>
+        );
+      });
 
       // Should redirect to login
       await waitFor(() => {
@@ -155,13 +169,15 @@ describe('Authentication Flow Integration', () => {
     test('should allow authenticated users to access protected content', async () => {
       // This test would require complex mocking of the auth state
       // For now, we'll skip the full implementation and just test the component structure
-      render(
-        <AuthProvider>
-          <ProtectedRoute>
-            <ProtectedContent />
-          </ProtectedRoute>
-        </AuthProvider>
-      );
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <ProtectedRoute>
+              <ProtectedContent />
+            </ProtectedRoute>
+          </AuthProvider>
+        );
+      });
 
       // Should attempt to redirect (since no user is authenticated)
       await waitFor(() => {
@@ -170,13 +186,15 @@ describe('Authentication Flow Integration', () => {
     });
 
     test('should enforce role-based access control', async () => {
-      render(
-        <AuthProvider>
-          <ProtectedRoute requiredRole={UserRole.CREATOR}>
-            <ProtectedContent />
-          </ProtectedRoute>
-        </AuthProvider>
-      );
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <ProtectedRoute requiredRole={UserRole.CREATOR}>
+              <ProtectedContent />
+            </ProtectedRoute>
+          </AuthProvider>
+        );
+      });
 
       // Should redirect to login first (since no user is authenticated)
       await waitFor(() => {
@@ -227,16 +245,20 @@ describe('Authentication Flow Integration', () => {
         writable: true,
       });
 
-      render(
-        <AuthProvider>
-          <AuthStatus />
-        </AuthProvider>
-      );
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <AuthStatus />
+          </AuthProvider>
+        );
+      });
 
       // Should attempt to restore session (AuthProvider will handle this internally)
-      expect(localStorageMock.getItem).toHaveBeenCalledWith(
-        'empowergrid_session'
-      );
+      await waitFor(() => {
+        expect(localStorageMock.getItem).toHaveBeenCalledWith(
+          'empowergrid_session'
+        );
+      });
     });
   });
 
@@ -249,15 +271,19 @@ describe('Authentication Flow Integration', () => {
         new Error('Wallet connection failed')
       );
 
-      render(
-        <AuthProvider>
-          <AuthStatus />
-          <WalletConnect />
-        </AuthProvider>
-      );
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <AuthStatus />
+            <WalletConnect />
+          </AuthProvider>
+        );
+      });
 
       const connectButton = screen.getByText('Connect Wallet');
-      await user.click(connectButton);
+      await act(async () => {
+        await user.click(connectButton);
+      });
 
       // Should remain unauthenticated
       await waitFor(() => {
@@ -293,11 +319,13 @@ describe('Authentication Flow Integration', () => {
         writable: true,
       });
 
-      render(
-        <AuthProvider>
-          <AuthStatus />
-        </AuthProvider>
-      );
+      await act(async () => {
+        render(
+          <AuthProvider>
+            <AuthStatus />
+          </AuthProvider>
+        );
+      });
 
       // Should detect expired session and clear it
       await waitFor(() => {

@@ -73,6 +73,9 @@ import { TextEncoder, TextDecoder } from 'util';
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
+// Polyfill for setImmediate (needed for winston logger in tests)
+global.setImmediate = global.setImmediate || ((fn, ...args) => setTimeout(fn, 0, ...args));
+
 // Mock crypto for Solana
 Object.defineProperty(window, 'crypto', {
   value: {
@@ -80,10 +83,36 @@ Object.defineProperty(window, 'crypto', {
   },
 });
 
-// Mock uuid to avoid ES module issues
+// Mock uuid to avoid ES module issues - return proper UUID format with variation
+let uuidCounter = 0;
 jest.mock('uuid', () => ({
-  v4: jest.fn(() => 'mock-uuid-1234'),
-  v1: jest.fn(() => 'mock-uuid-v1-1234'),
+  v4: jest.fn(() => {
+    uuidCounter++;
+    // Return different UUIDs by varying the last part
+    const hex = uuidCounter.toString(16).padStart(12, '0');
+    return `12345678-1234-1234-1234-${hex}`;
+  }),
+  v1: jest.fn(() => {
+    uuidCounter++;
+    const hex = uuidCounter.toString(16).padStart(12, '0');
+    return `12345678-1234-1234-1234-${hex}`;
+  }),
+}));
+
+// Mock nanoid to avoid ES module issues - return different values each call
+let nanoidCounter = 0;
+jest.mock('nanoid', () => ({
+  nanoid: jest.fn(() => {
+    nanoidCounter++;
+    return `mock-nanoid-${nanoidCounter.toString().padStart(4, '0')}`;
+  }),
+  customAlphabet: jest.fn(() => {
+    let customCounter = 0;
+    return jest.fn(() => {
+      customCounter++;
+      return `mock-nanoid-custom-${customCounter}`;
+    });
+  }),
 }));
 
 // Mock @solana/web3.js to avoid ES module issues

@@ -26,6 +26,26 @@ export interface CreateProjectData {
  * Create new project
  */
 export async function createProject(data: CreateProjectData) {
+  // Validate required fields
+  if (!data.title || !data.title.trim()) {
+    throw new Error('Project title is required');
+  }
+  if (!data.description || !data.description.trim()) {
+    throw new Error('Project description is required');
+  }
+  if (!data.location || !data.location.trim()) {
+    throw new Error('Project location is required');
+  }
+  if (!data.category || !data.category.trim()) {
+    throw new Error('Project category is required');
+  }
+  if (!data.creatorId || !data.creatorId.trim()) {
+    throw new Error('Creator ID is required');
+  }
+  if (!data.targetAmount || data.targetAmount <= 0) {
+    throw new Error('Target amount must be greater than 0');
+  }
+
   // Generate blockchain identifiers
   const programId = process.env.NEXT_PUBLIC_PROGRAM_ID || '11111111111111111111111111111111';
   const projectPDA = `project_${Date.now()}_${Math.random().toString(36).substring(7)}`;
