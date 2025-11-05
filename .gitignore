@@ -171,3 +171,6 @@ jspm_packages/
 
 # DynamoDB Local files
 .dynamodb/
+
+# Archive folder
+Archive/
