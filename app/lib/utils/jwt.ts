@@ -96,11 +96,15 @@ export function generateAccessToken(
 export function generateRefreshToken(
   userId: string,
   walletAddress: string,
-  sessionId: string
+  sessionId: string,
+  role: UserRole,
+  username?: string
 ): JWTGenerationResult {
-  const payload = {
+  const payload: JWTPayload & { type: 'refresh' } = {
     userId,
     walletAddress,
+    role,
+    username,
     sessionId,
     type: 'refresh',
   };
@@ -148,7 +152,13 @@ export function generateTokenPair(
     sessionId,
   });
 
-  const refreshToken = generateRefreshToken(userId, walletAddress, sessionId);
+  const refreshToken = generateRefreshToken(
+    userId,
+    walletAddress,
+    sessionId,
+    role,
+    username
+  );
 
   return {
     accessToken,
@@ -375,7 +385,7 @@ export function refreshAccessToken(
   const newAccessToken = generateAccessToken(
     payload.userId,
     payload.walletAddress,
-    newRole || payload.role,
+    newRole ?? normalizeTokenRole(payload.role),
     {
       sessionId: payload.sessionId,
     }
@@ -469,11 +479,13 @@ export function refreshTokenPair(
       };
     }
 
+    const role = normalizeTokenRole(payload.role);
+
     // Generate new access token
     const newAccessToken = generateAccessToken(
       payload.userId,
       payload.walletAddress,
-      payload.role,
+      role,
       {
         username: payload.username,
         sessionId: payload.sessionId,
@@ -487,7 +499,9 @@ export function refreshTokenPair(
       newRefreshToken = generateRefreshToken(
         payload.userId,
         payload.walletAddress,
-        payload.sessionId
+        payload.sessionId,
+        role,
+        payload.username
       );
     }
 
@@ -594,10 +608,24 @@ export function getTokenRefreshStatus(token: string): {
   };
 }
 
+function normalizeTokenRole(role?: string | null): UserRole {
+  const normalized = (role ?? '').toLowerCase();
+
+  if (
+    normalized === UserRole.ADMIN ||
+    normalized === UserRole.CREATOR ||
+    normalized === UserRole.FUNDER ||
+    normalized === UserRole.GUEST
+  ) {
+    return normalized;
+  }
+
+  return UserRole.FUNDER;
+}
+
 /**
  * Export for testing
  */
 export const __TEST__ = {
   parseExpiryToSeconds,
 };
-

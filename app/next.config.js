@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable standalone output for Docker deployment
-  output: 'standalone',
+  // Enable standalone output for Docker deployment (production only)
+  ...(process.env.NODE_ENV === 'production' && { output: 'standalone' }),
 
   // Performance optimizations
   poweredByHeader: false, // Remove X-Powered-By header
@@ -20,11 +20,21 @@ const nextConfig = {
         os: false,
       };
 
-      // Make Winston server-only
-      config.externals = config.externals || [];
-      config.externals.push({
-        winston: 'winston',
-      });
+      // Make Winston server-only - use IgnorePlugin to completely exclude it
+      config.plugins = config.plugins || [];
+      config.plugins.push(
+        new webpack.IgnorePlugin({
+          resourceRegExp: /^winston$/,
+        })
+      );
+      
+      // Also ignore the winstonLogger file on client
+      config.plugins.push(
+        new webpack.IgnorePlugin({
+          resourceRegExp: /winstonLogger\.ts$/,
+        })
+      );
+
     }
 
     // Bundle analyzer

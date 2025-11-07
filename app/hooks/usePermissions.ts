@@ -5,6 +5,7 @@
  */
 
 import { useAuth } from '../contexts/AuthContext';
+import { UserRole } from '../types/auth';
 
 // Permission definitions by role
 const ROLE_PERMISSIONS: Record<string, string[]> = {
@@ -46,8 +47,9 @@ export function usePermissions() {
    */
   const hasPermission = (permission: string): boolean => {
     if (!user || !user.role) return false;
-    
-    const rolePermissions = ROLE_PERMISSIONS[user.role] || [];
+
+    const roleKey = user.role.toUpperCase();
+    const rolePermissions = ROLE_PERMISSIONS[roleKey] || [];
     return rolePermissions.includes(permission);
   };
 
@@ -70,28 +72,29 @@ export function usePermissions() {
    */
   const getUserPermissions = (): string[] => {
     if (!user || !user.role) return [];
-    return ROLE_PERMISSIONS[user.role] || [];
+    const roleKey = user.role.toUpperCase();
+    return ROLE_PERMISSIONS[roleKey] || [];
   };
 
   /**
    * Check if user is admin
    */
   const isAdmin = (): boolean => {
-    return user?.role?.toString() === 'ADMIN';
+    return user?.role === UserRole.ADMIN;
   };
 
   /**
    * Check if user is creator
    */
   const isCreator = (): boolean => {
-    return user?.role?.toString() === 'CREATOR' || user?.role?.toString() === 'ADMIN';
+    return user?.role === UserRole.CREATOR || user?.role === UserRole.ADMIN;
   };
 
   /**
    * Check if user is funder
    */
   const isFunder = (): boolean => {
-    return user?.role?.toString() === 'FUNDER' || user?.role?.toString() === 'ADMIN';
+    return user?.role === UserRole.FUNDER || user?.role === UserRole.ADMIN;
   };
 
   return {
@@ -104,4 +107,3 @@ export function usePermissions() {
     isFunder,
   };
 }
-

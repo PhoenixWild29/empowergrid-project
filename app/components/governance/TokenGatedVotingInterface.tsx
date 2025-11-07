@@ -12,6 +12,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 interface TokenGatedVotingInterfaceProps {
   proposalId: string;
@@ -110,12 +111,12 @@ export default function TokenGatedVotingInterface({
                 </div>
                 {/* WO-150: Specific ineligibility reason */}
                 <p className="text-sm text-red-600 ml-7">{ineligibilityReason}</p>
-                <a
+                <Link
                   href="/governance/tokens"
                   className="text-sm text-red-700 underline ml-7 mt-1 inline-block"
                 >
                   Get GRID tokens →
-                </a>
+                </Link>
               </div>
             )}
           </div>
@@ -152,7 +153,7 @@ export default function TokenGatedVotingInterface({
 
       {!isEligible && !loadingBalance && (
         <p className="text-sm text-gray-500 text-center mt-4">
-          Voting is disabled because you don't meet the eligibility requirements
+          Voting is disabled because you don&apos;t meet the eligibility requirements
         </p>
       )}
     </div>

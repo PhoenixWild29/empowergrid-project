@@ -5,24 +5,39 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 // Create Prisma client with connection retry logic
-function createPrismaClient(): PrismaClient {
-  return new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL,
+function createPrismaClient(): PrismaClient | undefined {
+  // Don't create Prisma client if DATABASE_URL is not set
+  if (!process.env.DATABASE_URL) {
+    console.warn('⚠️  DATABASE_URL not set. Database features will be disabled.');
+    return undefined;
+  }
+
+  try {
+    return new PrismaClient({
+      log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+      datasources: {
+        db: {
+          url: process.env.DATABASE_URL,
+        },
       },
-    },
-  });
+    });
+  } catch (error) {
+    console.error('Failed to create Prisma client:', error);
+    return undefined;
+  }
 }
 
-export const prisma =
+export const prisma: PrismaClient | undefined =
   globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 // Connection health check helper with retry
 export async function checkDatabaseConnection(retries: number = 3): Promise<boolean> {
+  if (!prisma || !process.env.DATABASE_URL) {
+    return false;
+  }
+
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const queryPromise = prisma.$queryRaw`SELECT 1`;
@@ -68,8 +83,12 @@ export async function executeWithRetry<T>(
 }
 
 // Graceful disconnect on shutdown
-if (typeof window === 'undefined') {
+if (typeof window === 'undefined' && prisma) {
   process.on('beforeExit', async () => {
-    await prisma.$disconnect();
+    try {
+      await prisma.$disconnect();
+    } catch (error) {
+      // Ignore disconnect errors
+    }
   });
 }

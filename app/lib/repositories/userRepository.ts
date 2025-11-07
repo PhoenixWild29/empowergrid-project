@@ -2,6 +2,14 @@ import { prisma } from '../prisma';
 import { User, UserRole, UserStats } from '@prisma/client';
 import { PublicKey } from '@solana/web3.js';
 
+// Helper to check if prisma is available
+const checkPrisma = () => {
+  if (!prisma) {
+    throw new Error('Database not available. Please set DATABASE_URL environment variable.');
+  }
+  return prisma;
+};
+
 export interface CreateUserData {
   walletAddress: string;
   username: string;
@@ -23,8 +31,12 @@ export class UserRepository {
    * Find user by wallet address
    */
   async findByWalletAddress(walletAddress: string): Promise<User | null> {
+    if (!prisma) {
+      console.warn('Prisma client not available');
+      return null;
+    }
     try {
-      return await prisma.user.findUnique({
+      return await checkPrisma().user.findUnique({
         where: { walletAddress },
         include: {
           userStats: true,
@@ -41,7 +53,7 @@ export class UserRepository {
    */
   async findById(id: string): Promise<User | null> {
     try {
-      return await prisma.user.findUnique({
+      return await checkPrisma().user.findUnique({
         where: { id },
         include: {
           userStats: true,
@@ -58,7 +70,7 @@ export class UserRepository {
    */
   async findByIdWithStats(id: string) {
     try {
-      return await prisma.user.findUnique({
+      return await checkPrisma().user.findUnique({
         where: { id },
         include: {
           userStats: true,
@@ -75,7 +87,7 @@ export class UserRepository {
    */
   async findByUsername(username: string): Promise<User | null> {
     try {
-      return await prisma.user.findUnique({
+      return await checkPrisma().user.findUnique({
         where: { username },
         include: {
           userStats: true,
@@ -92,7 +104,7 @@ export class UserRepository {
    */
   async create(userData: CreateUserData): Promise<User> {
     try {
-      const user = await prisma.user.create({
+      const user = await checkPrisma().user.create({
         data: {
           ...userData,
           userStats: {
@@ -122,7 +134,7 @@ export class UserRepository {
    */
   async update(id: string, updateData: UpdateUserData): Promise<User> {
     try {
-      return await prisma.user.update({
+      return await checkPrisma().user.update({
         where: { id },
         data: updateData,
         include: {
@@ -143,7 +155,7 @@ export class UserRepository {
     stats: Partial<UserStats>
   ): Promise<UserStats> {
     try {
-      return await prisma.userStats.update({
+      return await checkPrisma().userStats.update({
         where: { userId },
         data: stats,
       });
@@ -158,7 +170,7 @@ export class UserRepository {
    */
   async delete(id: string): Promise<void> {
     try {
-      await prisma.user.delete({
+      await checkPrisma().user.delete({
         where: { id },
       });
     } catch (error) {
@@ -175,7 +187,7 @@ export class UserRepository {
     excludeUserId?: string
   ): Promise<boolean> {
     try {
-      const existingUser = await prisma.user.findFirst({
+      const existingUser = await checkPrisma().user.findFirst({
         where: {
           username,
           ...(excludeUserId && { id: { not: excludeUserId } }),
@@ -197,7 +209,7 @@ export class UserRepository {
     excludeUserId?: string
   ): Promise<boolean> {
     try {
-      const existingUser = await prisma.user.findFirst({
+      const existingUser = await checkPrisma().user.findFirst({
         where: {
           email,
           ...(excludeUserId && { id: { not: excludeUserId } }),
@@ -216,7 +228,7 @@ export class UserRepository {
    */
   async getUserStats(userId: string): Promise<UserStats | null> {
     try {
-      return await prisma.userStats.findUnique({
+      return await checkPrisma().userStats.findUnique({
         where: { userId },
       });
     } catch (error) {
@@ -230,7 +242,7 @@ export class UserRepository {
    */
   async searchByUsername(query: string, limit: number = 10): Promise<User[]> {
     try {
-      return await prisma.user.findMany({
+      return await checkPrisma().user.findMany({
         where: {
           username: {
             contains: query,
@@ -256,7 +268,7 @@ export class UserRepository {
    */
   async getTopUsers(limit: number = 10): Promise<User[]> {
     try {
-      return await prisma.user.findMany({
+      return await checkPrisma().user.findMany({
         include: {
           userStats: true,
         },

@@ -17,7 +17,7 @@ import { useRouter } from 'next/router';
 
 export default function ProjectGovernanceDashboard() {
   const router = useRouter();
-  const { projectId } = router.query;
+  const { id: projectId } = router.query;
   
   const [proposals, setProposals] = useState<any[]>([]);
   const [results, setResults] = useState<any>(null);
@@ -167,6 +167,5 @@ function StatCard({ title, value, color }: { title: string; value: string | numb
     </div>
   );
 }
-
 
 

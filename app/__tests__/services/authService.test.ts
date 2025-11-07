@@ -43,8 +43,10 @@ jest.mock('../../lib/services/sessionService', () => ({
   sessionService: {
     createSession: jest.fn(),
     invalidateSession: jest.fn(),
+    deleteSessionByToken: jest.fn(),
     refreshSession: jest.fn(),
     getSession: jest.fn(),
+    isSessionValid: jest.fn(),
   },
 }));
 
@@ -72,10 +74,20 @@ describe('AuthService', () => {
       (validateNonce as jest.Mock).mockReturnValue({ isValid: true });
       (verifySignature as jest.Mock).mockReturnValue({ isValid: true });
       (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
+      const mockExpiresAt = new Date(Date.now() + 3600000);
       (generateTokenPair as jest.Mock).mockReturnValue({
-        accessToken: 'mock-access-token',
-        refreshToken: 'mock-refresh-token',
-        expiresIn: 3600,
+        accessToken: {
+          accessToken: 'mock-access-token',
+          expiresIn: 3600,
+          expiresAt: mockExpiresAt,
+          tokenType: 'Bearer' as const,
+        },
+        refreshToken: {
+          accessToken: 'mock-refresh-token',
+          expiresIn: 86400,
+          expiresAt: new Date(Date.now() + 86400000),
+          tokenType: 'Bearer' as const,
+        },
       });
       (sessionService.createSession as jest.Mock).mockResolvedValue(mockSession);
 
@@ -124,10 +136,20 @@ describe('AuthService', () => {
       (verifySignature as jest.Mock).mockReturnValue({ isValid: true });
       (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
       (prisma.user.create as jest.Mock).mockResolvedValue(mockUser);
+      const mockExpiresAt = new Date(Date.now() + 3600000);
       (generateTokenPair as jest.Mock).mockReturnValue({
-        accessToken: 'mock-access-token',
-        refreshToken: 'mock-refresh-token',
-        expiresIn: 3600,
+        accessToken: {
+          accessToken: 'mock-access-token',
+          expiresIn: 3600,
+          expiresAt: mockExpiresAt,
+          tokenType: 'Bearer' as const,
+        },
+        refreshToken: {
+          accessToken: 'mock-refresh-token',
+          expiresIn: 86400,
+          expiresAt: new Date(Date.now() + 86400000),
+          tokenType: 'Bearer' as const,
+        },
       });
       (sessionService.createSession as jest.Mock).mockResolvedValue(mockSession);
 
@@ -154,20 +176,21 @@ describe('AuthService', () => {
 
   describe('logout', () => {
     it('should logout successfully', async () => {
-      (sessionService.invalidateSession as jest.Mock).mockResolvedValue(true);
+      (sessionService.deleteSessionByToken as jest.Mock).mockResolvedValue(true);
 
       const result = await authService.logout('token');
 
       expect(result).toBe(true);
-      expect(sessionService.invalidateSession).toHaveBeenCalled();
+      expect(sessionService.deleteSessionByToken).toHaveBeenCalledWith('token');
     });
 
     it('should handle logout errors gracefully', async () => {
-      (sessionService.invalidateSession as jest.Mock).mockRejectedValue(
+      (sessionService.deleteSessionByToken as jest.Mock).mockRejectedValue(
         new Error('Session error')
       );
 
-      await expect(authService.logout('token')).rejects.toThrow();
+      const result = await authService.logout('token');
+      expect(result).toBe(false);
     });
   });
 

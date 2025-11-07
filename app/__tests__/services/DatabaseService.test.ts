@@ -116,7 +116,7 @@ describe('DatabaseService', () => {
       expect(mockUserRepoInstance.create).toHaveBeenCalledWith({
         walletAddress: 'abc123',
         username: 'testuser',
-        role: 'funder' as any, // Use lowercase to match auth enum
+        role: 'FUNDER' as any, // DatabaseService converts to uppercase
       });
     });
   });
@@ -511,7 +511,7 @@ describe('DatabaseService', () => {
       expect(mockUserRepoInstance.create).toHaveBeenCalledWith({
         walletAddress: 'def456',
         username: 'customuser',
-        role: 'funder' as any, // Use lowercase to match auth enum
+        role: 'FUNDER' as any, // DatabaseService converts to uppercase
       });
     });
   });

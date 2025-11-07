@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { reactErrorBoundaryTracker } from '../lib/monitoring/errorTracker';
 import { logger } from '../lib/logging/logger';
+import { errorLogger } from '../lib/utils/comprehensiveErrorLogger';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -110,21 +111,43 @@ class ErrorBoundary extends React.Component<
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     const { errorId } = this.state;
 
-    // Track the error with our monitoring system
-    reactErrorBoundaryTracker.trackComponentError(
-      error,
-      { componentStack: errorInfo.componentStack || '' },
-      'ErrorBoundary',
-      undefined // userId would come from auth context
-    );
+    // Log to comprehensive error logger (most important - always try this first)
+    try {
+      errorLogger.logReactError(
+        error,
+        errorInfo,
+        'ErrorBoundary',
+        this.props,
+        this.state
+      );
+    } catch (logError) {
+      console.error('Failed to log to comprehensive error logger:', logError);
+    }
 
-    // Log additional context
-    logger.error('React Error Boundary caught an error', {
-      errorId,
-      error: error.message,
-      stack: error.stack,
-      componentStack: errorInfo.componentStack,
-    });
+    // Track the error with our monitoring system - wrap in try-catch to prevent errors in error handling
+    try {
+      reactErrorBoundaryTracker.trackComponentError(
+        error,
+        { componentStack: errorInfo.componentStack || '' },
+        'ErrorBoundary',
+        undefined // userId would come from auth context
+      );
+    } catch (trackError) {
+      console.error('Failed to track error:', trackError);
+    }
+
+    // Log additional context - wrap in try-catch to prevent errors in error handling
+    try {
+      logger.error('React Error Boundary caught an error', {
+        errorId,
+        error: error.message,
+        stack: error.stack,
+        componentStack: errorInfo.componentStack,
+      });
+    } catch (logError) {
+      console.error('Failed to log error:', logError);
+      console.error('Original error:', error);
+    }
 
     this.setState({
       error,
@@ -132,8 +155,12 @@ class ErrorBoundary extends React.Component<
     });
 
     // Call optional error handler
-    if (this.props.onError) {
-      this.props.onError(error, errorInfo);
+    try {
+      if (this.props.onError) {
+        this.props.onError(error, errorInfo);
+      }
+    } catch (handlerError) {
+      console.error('Error handler failed:', handlerError);
     }
   }
 

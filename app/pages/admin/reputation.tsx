@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from 'next/router';
 import Layout from '../../components/Layout';
+import { UserRole } from '../../types/auth';
 
 interface UserReputation {
   id: string;
@@ -54,14 +55,14 @@ export default function AdminReputationPage() {
 
   // Check admin access
   useEffect(() => {
-    if (!isAuthenticated || user?.role?.toString() !== 'ADMIN') {
+    if (!isAuthenticated || user?.role !== UserRole.ADMIN) {
       router.push('/');
     }
   }, [isAuthenticated, user, router]);
 
   // Load data
   useEffect(() => {
-    if (isAuthenticated && user?.role?.toString() === 'ADMIN') {
+    if (isAuthenticated && user?.role === UserRole.ADMIN) {
       loadUsers();
       loadLogs();
     }
@@ -185,7 +186,7 @@ export default function AdminReputationPage() {
     }
   };
 
-  if (!isAuthenticated || user?.role?.toString() !== 'ADMIN') {
+  if (!isAuthenticated || user?.role !== UserRole.ADMIN) {
     return null;
   }
 

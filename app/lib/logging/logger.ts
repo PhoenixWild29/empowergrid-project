@@ -1,5 +1,6 @@
-import winston from 'winston';
-import path from 'path';
+// Client-safe logger that falls back to console when winston is not available
+// Winston should NEVER be imported on the client side - webpack will try to bundle it
+// We use eval('require') in createWinstonLogger to prevent webpack from statically analyzing it
 
 // Define log levels
 export const LOG_LEVELS = {
@@ -12,102 +13,68 @@ export const LOG_LEVELS = {
 
 export type LogLevel = keyof typeof LOG_LEVELS;
 
-// Custom log format for development
-const developmentFormat = winston.format.combine(
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-  winston.format.errors({ stack: true }),
-  winston.format.colorize(),
-  winston.format.printf((info: any) => {
-    const { timestamp, level, message, stack, ...meta } = info;
-    let log = `${timestamp} [${level}]: ${message}`;
-
-    if (Object.keys(meta).length > 0) {
-      log += ` ${JSON.stringify(meta, null, 2)}`;
+// Create a console-based logger for client-side
+const createConsoleLogger = () => {
+  const formatMessage = (level: string, message: string, meta?: any) => {
+    const timestamp = new Date().toISOString();
+    const prefix = `[${timestamp}] [${level.toUpperCase()}]:`;
+    
+    if (meta && Object.keys(meta).length > 0) {
+      return [`${prefix} ${message}`, meta];
     }
+    return [`${prefix} ${message}`];
+  };
 
-    if (stack) {
-      log += `\n${stack}`;
-    }
+  return {
+    error: (message: string, meta?: any) => {
+      const [msg, ...rest] = formatMessage('error', message, meta);
+      console.error(msg, ...rest);
+    },
+    warn: (message: string, meta?: any) => {
+      const [msg, ...rest] = formatMessage('warn', message, meta);
+      console.warn(msg, ...rest);
+    },
+    info: (message: string, meta?: any) => {
+      const [msg, ...rest] = formatMessage('info', message, meta);
+      console.info(msg, ...rest);
+    },
+    http: (message: string, meta?: any) => {
+      const [msg, ...rest] = formatMessage('http', message, meta);
+      console.log(msg, ...rest);
+    },
+    debug: (message: string, meta?: any) => {
+      const [msg, ...rest] = formatMessage('debug', message, meta);
+      console.debug(msg, ...rest);
+    },
+    log: (level: LogLevel, message: string, meta?: any) => {
+      const method = level === 'error' ? 'error' : level === 'warn' ? 'warn' : level === 'info' ? 'info' : 'log';
+      const [msg, ...rest] = formatMessage(level, message, meta);
+      console[method](msg, ...rest);
+    },
+  };
+};
 
-    return log;
-  })
-);
+/**
+ * Attempt to load the Winston logger on the server. Falls back to the console
+ * logger if the module is unavailable (e.g. during client-side execution or
+ * when the dependency is not installed).
+ */
+let loggerInstance = createConsoleLogger();
 
-// Custom log format for production
-const productionFormat = winston.format.combine(
-  winston.format.timestamp(),
-  winston.format.errors({ stack: true }),
-  winston.format.json()
-);
+if (typeof window === 'undefined') {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { createWinstonLogger } = require('./winstonLogger');
+    loggerInstance = createWinstonLogger();
+  } catch (error) {
+    console.warn(
+      '[logger] Failed to load Winston logger, falling back to console logger:',
+      error
+    );
+  }
+}
 
-// Create logs directory if it doesn't exist
-const logsDir = path.join(process.cwd(), 'logs');
-
-// Development transports
-const developmentTransports = [
-  new winston.transports.Console({
-    level: 'debug',
-    format: developmentFormat,
-  }),
-  new winston.transports.File({
-    filename: path.join(logsDir, 'app.log'),
-    level: 'info',
-    format: developmentFormat,
-  }),
-  new winston.transports.File({
-    filename: path.join(logsDir, 'error.log'),
-    level: 'error',
-    format: developmentFormat,
-  }),
-];
-
-// Production transports
-const productionTransports = [
-  new winston.transports.Console({
-    level: 'info',
-    format: productionFormat,
-  }),
-  new winston.transports.File({
-    filename: path.join(logsDir, 'app.log'),
-    level: 'info',
-    format: productionFormat,
-    maxsize: 5242880, // 5MB
-    maxFiles: 5,
-  }),
-  new winston.transports.File({
-    filename: path.join(logsDir, 'error.log'),
-    level: 'error',
-    format: productionFormat,
-    maxsize: 5242880, // 5MB
-    maxFiles: 5,
-  }),
-];
-
-// Create logger instance
-export const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  levels: LOG_LEVELS,
-  format:
-    process.env.NODE_ENV === 'production'
-      ? productionFormat
-      : developmentFormat,
-  transports:
-    process.env.NODE_ENV === 'production'
-      ? productionTransports
-      : developmentTransports,
-  exceptionHandlers: [
-    new winston.transports.File({
-      filename: path.join(logsDir, 'exceptions.log'),
-      format: productionFormat,
-    }),
-  ],
-  rejectionHandlers: [
-    new winston.transports.File({
-      filename: path.join(logsDir, 'rejections.log'),
-      format: productionFormat,
-    }),
-  ],
-});
+export const logger = loggerInstance;
 
 // Add request logging method
 export const logRequest = (

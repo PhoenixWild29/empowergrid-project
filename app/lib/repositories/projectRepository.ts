@@ -1,6 +1,14 @@
 import { prisma } from '../prisma';
 import { Project, ProjectStatus, Prisma } from '@prisma/client';
 
+// Helper to check if prisma is available
+const checkPrisma = () => {
+  if (!prisma) {
+    throw new Error('Database not available. Please set DATABASE_URL environment variable.');
+  }
+  return prisma;
+};
+
 export interface CreateProjectData {
   title: string;
   description: string;
@@ -47,8 +55,9 @@ export class ProjectRepository {
    * Find project by ID
    */
   async findById(id: string): Promise<Project | null> {
+    if (!prisma) return null;
     try {
-      return await prisma.project.findUnique({
+      return await checkPrisma().project.findUnique({
         where: { id },
         include: {
           creator: {
@@ -83,7 +92,7 @@ export class ProjectRepository {
    */
   async findByPDA(projectPDA: string): Promise<Project | null> {
     try {
-      return await prisma.project.findUnique({
+      return await checkPrisma().project.findUnique({
         where: { projectPDA },
         include: {
           creator: {
@@ -118,7 +127,7 @@ export class ProjectRepository {
    */
   async create(projectData: CreateProjectData): Promise<Project> {
     try {
-      return await prisma.project.create({
+      return await checkPrisma().project.create({
         data: projectData,
         include: {
           creator: {
@@ -144,7 +153,7 @@ export class ProjectRepository {
    */
   async update(id: string, updateData: UpdateProjectData): Promise<Project> {
     try {
-      return await prisma.project.update({
+      return await checkPrisma().project.update({
         where: { id },
         data: updateData,
         include: {
@@ -173,7 +182,7 @@ export class ProjectRepository {
    */
   async delete(id: string): Promise<void> {
     try {
-      await prisma.project.delete({
+      await checkPrisma().project.delete({
         where: { id },
       });
     } catch (error) {
@@ -302,7 +311,7 @@ export class ProjectRepository {
    */
   async getTrending(limit: number = 10): Promise<Project[]> {
     try {
-      return await prisma.project.findMany({
+      return await checkPrisma().project.findMany({
         where: {
           status: {
             in: [ProjectStatus.ACTIVE, ProjectStatus.FUNDED],
@@ -340,7 +349,7 @@ export class ProjectRepository {
    */
   async getRecentlyFunded(limit: number = 10): Promise<Project[]> {
     try {
-      return await prisma.project.findMany({
+      return await checkPrisma().project.findMany({
         where: {
           fundedAt: {
             not: null,
@@ -376,7 +385,7 @@ export class ProjectRepository {
     additionalAmount: number
   ): Promise<Project> {
     try {
-      const project = await prisma.project.findUnique({
+      const project = await checkPrisma().project.findUnique({
         where: { id },
         select: {
           currentAmount: true,
@@ -397,7 +406,7 @@ export class ProjectRepository {
           ? ProjectStatus.FUNDED
           : project.status;
 
-      return await prisma.project.update({
+      return await checkPrisma().project.update({
         where: { id },
         data: {
           currentAmount: newAmount,

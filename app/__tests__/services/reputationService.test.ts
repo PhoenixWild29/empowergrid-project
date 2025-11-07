@@ -18,6 +18,7 @@ jest.mock('../../lib/prisma', () => ({
       findUnique: jest.fn(),
       update: jest.fn(),
       findMany: jest.fn(),
+      count: jest.fn(),
     },
     reputationActivity: {
       create: jest.fn(),
@@ -73,6 +74,15 @@ describe('ReputationService', () => {
         ...mockUser,
         reputation: 110,
       });
+      // Mock reputationActivity.create (though it's not used in the current implementation)
+      (prisma.reputationActivity.create as jest.Mock).mockResolvedValue({
+        id: 'activity-1',
+        userId: mockUser.id,
+        activity: 'PROJECT_CREATED',
+        pointsAwarded: 10,
+        metadata: { projectId: 'project-123' },
+        createdAt: new Date(),
+      });
 
       const result = await logReputationActivity(
         mockUser.id,
@@ -101,14 +111,28 @@ describe('ReputationService', () => {
       });
       (prisma.user.update as jest.Mock).mockResolvedValue({
         ...mockUser,
-        reputation: 80,
+        reputation: 95, // 100 - 5 = 95 (NEGATIVE_REVIEW is -5 points)
+      });
+      // Mock reputationActivity.create
+      (prisma.reputationActivity.create as jest.Mock).mockResolvedValue({
+        id: 'activity-1',
+        userId: mockUser.id,
+        activity: 'NEGATIVE_REVIEW',
+        pointsAwarded: -5,
+        metadata: {},
+        createdAt: new Date(),
       });
 
-      const result = await logReputationActivity(mockUser.id, 'PROJECT_REPORTED', {});
+      const result = await logReputationActivity(mockUser.id, 'NEGATIVE_REVIEW', {});
 
+      // NEGATIVE_REVIEW should reduce reputation (negative points)
       expect(result.newReputation).toBeLessThan(result.previousReputation);
+      expect(result.previousReputation).toBe(100);
+      expect(result.newReputation).toBeGreaterThanOrEqual(0);
+      expect(result.pointsAwarded).toBeLessThan(0); // Should be negative
       expect(prisma.user.update).toHaveBeenCalledWith(
         expect.objectContaining({
+          where: { id: mockUser.id },
           data: expect.objectContaining({
             reputation: expect.any(Number),
           }),
@@ -119,6 +143,11 @@ describe('ReputationService', () => {
 
   describe('setUserReputation', () => {
     it('should set user reputation directly', async () => {
+      // Mock the initial reputation lookup
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        reputation: 100,
+      });
+      // Mock the update result
       (prisma.user.update as jest.Mock).mockResolvedValue({
         ...mockUser,
         reputation: 200,
@@ -127,7 +156,12 @@ describe('ReputationService', () => {
       const result = await setUserReputation(mockUser.id, 200, 'admin-user-id');
 
       expect(result).toBeDefined();
-      expect(result.reputation).toBe(200);
+      expect(result.newReputation).toBe(200);
+      expect(result.previousReputation).toBe(100);
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { id: mockUser.id },
+        select: { reputation: true },
+      });
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: mockUser.id },
         data: { reputation: 200 },

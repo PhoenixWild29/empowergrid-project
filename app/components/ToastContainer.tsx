@@ -91,8 +91,14 @@ export const useToast = () => {
   const showToast = useCallback(
     (type: ToastType, title: string, message?: string, duration?: number) => {
       if (typeof window !== 'undefined' && (window as any).toast) {
-        return (window as any).toast[type](title, message, duration);
+        try {
+          return (window as any).toast[type](title, message, duration);
+        } catch (error) {
+          console.warn('Toast error:', error);
+          return null;
+        }
       }
+      return null;
     },
     []
   );
