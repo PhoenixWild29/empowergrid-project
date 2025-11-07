@@ -1,8 +1,11 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
+import type { NextApiResponse } from 'next';
 import * as z from 'zod';
-
-const prisma = new PrismaClient();
+import {
+  withRole,
+  type AuthenticatedRequest,
+} from '../../../../lib/middleware/authMiddleware';
+import { UserRole } from '../../../../types/auth';
+import { prisma } from '../../../../lib/prisma';
 
 const UpdateTransactionSchema = z.object({
   amount: z.number().positive().optional(),
@@ -16,8 +19,8 @@ const UpdateTransactionSchema = z.object({
  * PUT /api/admin/transactions/[id] - Update transaction
  * DELETE /api/admin/transactions/[id] - Delete transaction
  */
-export default async function handler(
-  req: NextApiRequest,
+async function adminTransactionHandler(
+  req: AuthenticatedRequest,
   res: NextApiResponse
 ) {
   const { id } = req.query;
@@ -25,10 +28,6 @@ export default async function handler(
   if (typeof id !== 'string') {
     return res.status(400).json({ error: 'Invalid transaction ID' });
   }
-
-  // Note: In production, add authentication middleware here
-  // const user = await getAuthenticatedUser(req);
-  // if (!user || user.role !== 'ADMIN') return res.status(403).json({ error: 'Forbidden' });
 
   try {
     if (req.method === 'GET') {
@@ -145,3 +144,5 @@ export default async function handler(
     });
   }
 }
+
+export default withRole([UserRole.ADMIN], adminTransactionHandler);

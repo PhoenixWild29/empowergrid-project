@@ -17,7 +17,9 @@ import {
   LoginResponse,
 } from '../types/auth';
 import { useErrorHandler } from '../hooks/useErrorHandler';
-import { databaseService } from '../lib/services/databaseService';
+// Import databaseService - it's safe as it only uses Prisma on server-side API routes
+// The service won't be called during SSR rendering, only in client-side effects
+import { databaseService, isDatabaseAvailable } from '../lib/services/databaseService';
 
 // Auth reducer actions
 type AuthAction =
@@ -111,16 +113,25 @@ const getSession = (): SessionData | null => {
     const session = localStorage.getItem(SESSION_KEY);
     if (!session) return null;
 
-    const sessionData: SessionData = JSON.parse(session);
+    const sessionData: any = JSON.parse(session);
+
+    // Convert expiresAt from string to Date if needed
+    const expiresAt = typeof sessionData.expiresAt === 'string' 
+      ? new Date(sessionData.expiresAt)
+      : sessionData.expiresAt;
 
     // Check if session is expired
-    if (new Date(sessionData.expiresAt) < new Date()) {
+    if (expiresAt < new Date()) {
       localStorage.removeItem(SESSION_KEY);
       localStorage.removeItem(USER_KEY);
       return null;
     }
 
-    return sessionData;
+    return {
+      ...sessionData,
+      expiresAt,
+      createdAt: sessionData.createdAt ? (typeof sessionData.createdAt === 'string' ? new Date(sessionData.createdAt) : sessionData.createdAt) : new Date(),
+    };
   } catch (error) {
     console.error('Failed to parse session:', error);
     return null;
@@ -141,7 +152,18 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [state, dispatch] = useReducer(authReducer, initialState);
-  const { handleError } = useErrorHandler();
+  // Disable toasts in error handler to prevent circular dependencies during initialization
+  const { handleError: handleErrorFromHook } = useErrorHandler({ showToast: false });
+  
+  // Wrap error handler to catch any errors
+  const handleError = (error: unknown, message?: string) => {
+    try {
+      handleErrorFromHook(error, message);
+    } catch (err) {
+      // Fallback to console if error handler itself fails
+      console.error(message || 'Error:', error);
+    }
+  };
 
   // Check for existing session on mount
   useEffect(() => {
@@ -169,7 +191,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
             const walletAddress = new PublicKey(sessionData.user.walletAddress);
             
             // Update session expiry if different
-            if (sessionData.session.expiresAt !== session.expiresAt.toISOString()) {
+            const sessionExpiresAt = typeof session.expiresAt === 'string' 
+              ? session.expiresAt 
+              : session.expiresAt.toISOString();
+            if (sessionData.session.expiresAt !== sessionExpiresAt) {
               const updatedSession = {
                 ...session,
                 expiresAt: new Date(sessionData.session.expiresAt),
@@ -446,7 +471,33 @@ export function useAuth(): AuthContextType {
 // Mock functions (replace with real API calls)
 async function mockLogin(walletAddress: PublicKey): Promise<LoginResponse> {
   try {
+    // Check if database is available
+    if (!isDatabaseAvailable() || !databaseService) {
+      // Return mock user if database is not available
+      return {
+        user: {
+          id: 'mock-user-id',
+          walletAddress,
+          username: `user_${walletAddress.toString().slice(0, 8)}`,
+          role: UserRole.FUNDER,
+          reputation: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          verified: false,
+          stats: {
+            projectsCreated: 0,
+            projectsFunded: 0,
+            totalFunded: 0,
+            successfulProjects: 0,
+          },
+        },
+        token: `mock_jwt_${Date.now()}`,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      };
+    }
+
     // Ensure user exists in database
+    // Note: This is only called client-side in mockLogin, which is only used in development
     const dbUser = await databaseService.ensureUserExists(
       walletAddress.toString()
     );
@@ -474,7 +525,30 @@ async function mockUpdateProfile(
   updates: Partial<UserProfile>
 ): Promise<UserProfile> {
   try {
+    // Check if database is available
+    if (!isDatabaseAvailable() || !databaseService) {
+      // If database is not available, return a mock updated profile
+      return {
+        id: userId,
+        walletAddress: new PublicKey('11111111111111111111111111111111'),
+        username: updates.username || 'user',
+        role: updates.role || UserRole.FUNDER,
+        reputation: updates.reputation || 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        verified: updates.verified || false,
+        stats: {
+          projectsCreated: 0,
+          projectsFunded: 0,
+          totalFunded: 0,
+          successfulProjects: 0,
+        },
+        ...updates,
+      } as UserProfile;
+    }
+
     // Update user profile in database
+    // Note: This is only called client-side in mockUpdateProfile
     await databaseService.updateUserProfile(userId, updates);
 
     // Get updated profile

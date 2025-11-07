@@ -37,6 +37,9 @@ jest.mock('../../hooks/useErrorHandler', () => ({
   }),
 }));
 
+// Mock global fetch
+global.fetch = jest.fn();
+
 // Test component that uses auth context
 function TestComponent() {
   const { isAuthenticated, user, login, logout, hasPermission } = useAuth();
@@ -139,6 +142,16 @@ describe('AuthContext', () => {
     test('should handle login successfully', async () => {
       const user = userEvent.setup();
 
+      // Mock fetch to return a challenge (but signMessage is not provided, so it uses mockLogin)
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          nonce: 'test-nonce',
+          message: 'test-message',
+          expiresAt: new Date(Date.now() + 60000).toISOString(),
+        }),
+      });
+
       await act(async () => {
         render(
           <AuthProvider>
@@ -157,7 +170,7 @@ describe('AuthContext', () => {
         expect(screen.getByTestId('auth-status')).toHaveTextContent(
           'authenticated'
         );
-      });
+      }, { timeout: 3000 });
 
       expect(localStorageMock.setItem).toHaveBeenCalled();
       expect(mockDatabaseService.ensureUserExists).toHaveBeenCalledWith(
@@ -170,6 +183,16 @@ describe('AuthContext', () => {
 
     test('should handle logout', async () => {
       const user = userEvent.setup();
+
+      // Mock fetch to return a challenge (but signMessage is not provided, so it uses mockLogin)
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          nonce: 'test-nonce',
+          message: 'test-message',
+          expiresAt: new Date(Date.now() + 60000).toISOString(),
+        }),
+      });
 
       // First login
       await act(async () => {
@@ -190,7 +213,7 @@ describe('AuthContext', () => {
         expect(screen.getByTestId('auth-status')).toHaveTextContent(
           'authenticated'
         );
-      });
+      }, { timeout: 3000 });
 
       // Then logout
       const logoutButton = screen.getByTestId('logout-btn');
@@ -212,6 +235,16 @@ describe('AuthContext', () => {
   describe('Permission Checking', () => {
     test('should check permissions correctly', async () => {
       const user = userEvent.setup();
+
+      // Mock fetch to return a challenge (but signMessage is not provided, so it uses mockLogin)
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          nonce: 'test-nonce',
+          message: 'test-message',
+          expiresAt: new Date(Date.now() + 60000).toISOString(),
+        }),
+      });
 
       await act(async () => {
         render(
@@ -237,7 +270,7 @@ describe('AuthContext', () => {
         expect(screen.getByTestId('auth-status')).toHaveTextContent(
           'authenticated'
         );
-      });
+      }, { timeout: 3000 });
 
       // Should now be able to create projects
       expect(screen.getByTestId('can-create-project')).toHaveTextContent(

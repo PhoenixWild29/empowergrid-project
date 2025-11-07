@@ -11,7 +11,7 @@
 **Status:** COMPLETE  
 **Files Created:**
 - `app/pages/api/projects/index.ts` - POST & GET endpoints for project creation and listing
-- `app/pages/api/projects/[id].ts` - GET, PUT, DELETE endpoints for individual projects
+- `app/pages/api/projects/[id]/index.ts` - GET, PUT, DELETE endpoints for individual projects
 - `app/lib/schemas/projectSchemas.ts` - Zod validation schemas
 - `app/lib/services/projectService.ts` - Business logic layer
 
@@ -96,7 +96,7 @@
 
 ### Files Created (8 total)
 1. `app/pages/api/projects/index.ts`
-2. `app/pages/api/projects/[id].ts`
+2. `app/pages/api/projects/[id]/index.ts`
 3. `app/lib/schemas/projectSchemas.ts`
 4. `app/lib/services/projectService.ts`
 5. `app/components/projects/ProjectDashboardLayout.tsx`

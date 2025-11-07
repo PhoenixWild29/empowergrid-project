@@ -32,19 +32,27 @@ export function useErrorHandler(options: UseErrorHandlerOptions = {}) {
       const shouldToast = defaultShowToast && shouldShowToast(severity);
 
       if (shouldToast && toast) {
-        const message = customMessage || appError.message;
+        try {
+          const message = customMessage || appError.message;
 
-        switch (severity) {
-          case 'critical':
-          case 'high':
-            toast.error('Error', message);
-            break;
-          case 'medium':
-            toast.warning('Warning', message);
-            break;
-          case 'low':
-            toast.info('Info', message);
-            break;
+          // Safely call toast methods - they may not be available if window.toast isn't set up yet
+          if (toast.error && toast.warning && toast.info) {
+            switch (severity) {
+              case 'critical':
+              case 'high':
+                toast.error('Error', message);
+                break;
+              case 'medium':
+                toast.warning('Warning', message);
+                break;
+              case 'low':
+                toast.info('Info', message);
+                break;
+            }
+          }
+        } catch (toastError) {
+          // Toast failed, just log to console
+          console.error('Toast error:', toastError);
         }
       }
 

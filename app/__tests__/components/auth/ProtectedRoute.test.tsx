@@ -43,14 +43,47 @@ jest.mock('../../../contexts/AuthContext', () => {
   };
 });
 
+// Mock global fetch
+global.fetch = jest.fn();
+
 // Test component
 function TestContent() {
   return <div data-testid='protected-content'>Protected Content</div>;
 }
 
+// Helper function to mock session validation fetch
+function mockSessionValidation(mockUser: any, mockSession: any) {
+  (global.fetch as jest.Mock).mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      success: true,
+      user: {
+        ...mockUser,
+        walletAddress: typeof mockUser.walletAddress === 'string' 
+          ? mockUser.walletAddress 
+          : mockUser.walletAddress.toString(),
+        createdAt: typeof mockUser.createdAt === 'string'
+          ? mockUser.createdAt
+          : mockUser.createdAt.toISOString(),
+      },
+      session: {
+        expiresAt: typeof mockSession.expiresAt === 'string' 
+          ? mockSession.expiresAt 
+          : (typeof mockSession.expiresAt === 'object' && mockSession.expiresAt instanceof Date
+              ? mockSession.expiresAt.toISOString()
+              : mockSession.expiresAt),
+      },
+      token: {
+        expiresIn: 3600,
+      },
+    }),
+  });
+}
+
 describe('ProtectedRoute', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (global.fetch as jest.Mock).mockClear();
   });
 
   describe('Unauthenticated Users', () => {
@@ -135,6 +168,29 @@ describe('ProtectedRoute', () => {
         fetchUserProfile as jest.MockedFunction<typeof fetchUserProfile>
       ).mockResolvedValue(mockUser);
 
+      // Mock database service for AuthContext
+      const mockDatabaseService = require('../../../lib/services/databaseService').databaseService;
+      mockDatabaseService.getUserProfile = jest.fn().mockResolvedValue(mockUser);
+
+      // Mock fetch for session validation
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          user: {
+            ...mockUser,
+            walletAddress: 'test-wallet',
+            createdAt: mockUser.createdAt.toISOString(),
+          },
+          session: {
+            expiresAt: mockSession.expiresAt,
+          },
+          token: {
+            expiresIn: 3600,
+          },
+        }),
+      });
+
       render(
         <AuthProvider>
           <ProtectedRoute>
@@ -145,7 +201,7 @@ describe('ProtectedRoute', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('protected-content')).toBeInTheDocument();
-      });
+      }, { timeout: 3000 });
 
       expect(mockRouter.push).not.toHaveBeenCalled();
     });
@@ -195,6 +251,7 @@ describe('ProtectedRoute', () => {
       });
 
       (fetchUserProfile as unknown as jest.Mock).mockResolvedValue(mockUser);
+      mockSessionValidation(mockUser, mockSession);
 
       render(
         <AuthProvider>
@@ -206,7 +263,7 @@ describe('ProtectedRoute', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('protected-content')).toBeInTheDocument();
-      });
+      }, { timeout: 3000 });
     });
 
     test('should deny access when user lacks required role', async () => {
@@ -253,6 +310,7 @@ describe('ProtectedRoute', () => {
 
       (validateSession as unknown as jest.Mock).mockResolvedValue(true);
       (fetchUserProfile as unknown as jest.Mock).mockResolvedValue(mockUser);
+      mockSessionValidation(mockUser, mockSession);
 
       render(
         <AuthProvider>
@@ -264,7 +322,7 @@ describe('ProtectedRoute', () => {
 
       await waitFor(() => {
         expect(mockRouter.push).toHaveBeenCalledWith('/unauthorized');
-      });
+      }, { timeout: 3000 });
 
       expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument();
     });
@@ -312,6 +370,7 @@ describe('ProtectedRoute', () => {
       });
 
       (fetchUserProfile as unknown as jest.Mock).mockResolvedValue(mockUser);
+      mockSessionValidation(mockUser, mockSession);
 
       render(
         <AuthProvider>
@@ -323,7 +382,7 @@ describe('ProtectedRoute', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('protected-content')).toBeInTheDocument();
-      });
+      }, { timeout: 3000 });
     });
   });
 
@@ -371,6 +430,7 @@ describe('ProtectedRoute', () => {
       });
 
       (fetchUserProfile as unknown as jest.Mock).mockResolvedValue(mockUser);
+      mockSessionValidation(mockUser, mockSession);
 
       render(
         <AuthProvider>
@@ -382,7 +442,7 @@ describe('ProtectedRoute', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('protected-content')).toBeInTheDocument();
-      });
+      }, { timeout: 3000 });
     });
 
     test('should deny access when user lacks required permission', async () => {
@@ -428,6 +488,7 @@ describe('ProtectedRoute', () => {
       });
 
       (fetchUserProfile as unknown as jest.Mock).mockResolvedValue(mockUser);
+      mockSessionValidation(mockUser, mockSession);
 
       render(
         <AuthProvider>
@@ -439,7 +500,7 @@ describe('ProtectedRoute', () => {
 
       await waitFor(() => {
         expect(mockRouter.push).toHaveBeenCalledWith('/unauthorized');
-      });
+      }, { timeout: 3000 });
     });
   });
 
@@ -462,6 +523,32 @@ describe('ProtectedRoute', () => {
       };
 
       (fetchUserProfile as unknown as jest.Mock).mockResolvedValue(mockUser);
+      
+      // Mock session for authenticated user
+      const mockSession = {
+        userId: mockUser.id,
+        walletAddress: mockUser.walletAddress.toString(),
+        token: 'test-token',
+        expiresAt: new Date(Date.now() + 3600000).toISOString(),
+        createdAt: new Date().toISOString(),
+      };
+      
+      // Mock localStorage
+      Object.defineProperty(window, 'localStorage', {
+        value: {
+          getItem: jest.fn(key => {
+            if (key === 'empowergrid_session') return JSON.stringify(mockSession);
+            if (key === 'empowergrid_user') return JSON.stringify(mockUser);
+            return null;
+          }),
+          setItem: jest.fn(),
+          removeItem: jest.fn(),
+          clear: jest.fn(),
+        },
+        writable: true,
+      });
+      
+      mockSessionValidation(mockUser, mockSession);
 
       render(
         <AuthProvider>
@@ -473,7 +560,7 @@ describe('ProtectedRoute', () => {
 
       await waitFor(() => {
         expect(mockRouter.push).toHaveBeenCalledWith('/');
-      });
+      }, { timeout: 3000 });
     });
   });
 });

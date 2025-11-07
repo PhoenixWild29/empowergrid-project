@@ -11,9 +11,13 @@
  * - Admin authentication required
  */
 
-import { NextApiRequest, NextApiResponse } from 'next';
-import { withAuth } from '../../../../lib/middleware/authMiddleware';
+import { NextApiResponse } from 'next';
+import {
+  withRole,
+  type AuthenticatedRequest,
+} from '../../../../lib/middleware/authMiddleware';
 import { z } from 'zod';
+import { UserRole } from '../../../../types/auth';
 
 const SecurityPolicySchema = z.object({
   name: z.string().min(1).max(100),
@@ -26,16 +30,10 @@ const SecurityPolicySchema = z.object({
 // In-memory storage (production would use database)
 const policies: Map<string, any> = new Map();
 
-async function securityPoliciesHandler(req: NextApiRequest, res: NextApiResponse) {
-  // Verify admin role
-  const userRole = (req as any).user?.role;
-  if (userRole !== 'admin') {
-    return res.status(403).json({
-      error: 'Forbidden',
-      message: 'Admin access required for security policy management',
-    });
-  }
-
+async function securityPoliciesHandler(
+  req: AuthenticatedRequest,
+  res: NextApiResponse
+) {
   if (req.method === 'POST') {
     // WO-157: Create policy
     try {
@@ -46,7 +44,7 @@ async function securityPoliciesHandler(req: NextApiRequest, res: NextApiResponse
         id: policyId,
         ...validatedData,
         createdAt: new Date().toISOString(),
-        createdBy: (req as any).user?.id,
+        createdBy: req.user.id,
       };
 
       policies.set(policyId, policy);
@@ -135,7 +133,7 @@ async function securityPoliciesHandler(req: NextApiRequest, res: NextApiResponse
         ...existingPolicy,
         ...validatedData,
         updatedAt: new Date().toISOString(),
-        updatedBy: (req as any).user?.id,
+        updatedBy: req.user.id,
       };
 
       policies.set(policyId, updatedPolicy);
@@ -191,7 +189,7 @@ async function securityPoliciesHandler(req: NextApiRequest, res: NextApiResponse
   }
 }
 
-export default withAuth(securityPoliciesHandler);
+export default withRole([UserRole.ADMIN], securityPoliciesHandler);
 
 
 

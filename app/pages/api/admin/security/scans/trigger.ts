@@ -12,9 +12,13 @@
  * - Audit logging
  */
 
-import { NextApiRequest, NextApiResponse } from 'next';
-import { withAuth } from '../../../../../lib/middleware/authMiddleware';
+import { NextApiResponse } from 'next';
+import {
+  withRole,
+  type AuthenticatedRequest,
+} from '../../../../../lib/middleware/authMiddleware';
 import { z } from 'zod';
+import { UserRole } from '../../../../../types/auth';
 
 const ScanTriggerSchema = z.object({
   scanType: z.enum(['VULNERABILITY', 'COMPLIANCE', 'CONFIGURATION']),
@@ -30,11 +34,10 @@ const ScanTriggerSchema = z.object({
 // In-memory scan tracking
 const scans: Map<string, any> = new Map();
 
-async function scanTriggerHandler(req: NextApiRequest, res: NextApiResponse) {
-  if ((req as any).user?.role !== 'admin') {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-
+async function scanTriggerHandler(
+  req: AuthenticatedRequest,
+  res: NextApiResponse
+) {
   if (req.method === 'POST') {
     // WO-170: Trigger scan
     try {
@@ -50,7 +53,7 @@ async function scanTriggerHandler(req: NextApiRequest, res: NextApiResponse) {
         currentPhase: 'INITIALIZATION',
         estimatedCompletion: new Date(Date.now() + 300000).toISOString(), // 5 minutes
         startedAt: new Date().toISOString(),
-        triggeredBy: (req as any).user?.id,
+        triggeredBy: req.user.id,
       };
 
       scans.set(scanId, scan);
@@ -59,7 +62,7 @@ async function scanTriggerHandler(req: NextApiRequest, res: NextApiResponse) {
       console.log('[WO-170] Security scan triggered:', {
         scanId,
         scanType: scanConfig.scanType,
-        admin: (req as any).user?.id,
+        admin: req.user.id,
         timestamp: new Date().toISOString(),
       });
 
@@ -169,7 +172,7 @@ async function scanTriggerHandler(req: NextApiRequest, res: NextApiResponse) {
     // WO-170: Log cancellation
     console.log('[WO-170] Scan cancelled:', {
       scanId,
-      admin: (req as any).user?.id,
+      admin: req.user.id,
       timestamp: new Date().toISOString(),
     });
 
@@ -183,7 +186,7 @@ async function scanTriggerHandler(req: NextApiRequest, res: NextApiResponse) {
   }
 }
 
-export default withAuth(scanTriggerHandler);
+export default withRole([UserRole.ADMIN], scanTriggerHandler);
 
 
 

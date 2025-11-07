@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { withAuth, withOptionalAuth } from '../../../lib/middleware/authMiddleware';
 import { prisma } from '../../../lib/prisma';
 import { CreateProjectSchema, ProjectFiltersSchema } from '../../../lib/schemas/projectSchemas';
+import { UserRole } from '../../../types/auth';
 
 /**
  * POST /api/projects
@@ -18,10 +19,12 @@ import { CreateProjectSchema, ProjectFiltersSchema } from '../../../lib/schemas/
 async function createProject(req: NextApiRequest, res: NextApiResponse) {
   try {
     const userId = (req as any).userId;
-    const userRole = (req as any).userRole;
+    const rawRole = (req as any).userRole ?? (req as any).user?.role;
+    const userRole =
+      typeof rawRole === 'string' ? rawRole.toLowerCase() : '';
 
     // Check if user can create projects
-    if (userRole !== 'CREATOR' && userRole !== 'ADMIN') {
+    if (userRole !== UserRole.CREATOR && userRole !== UserRole.ADMIN) {
       return res.status(403).json({
         error: 'Forbidden',
         message: 'Only creators and admins can create projects',
@@ -316,4 +319,3 @@ export default async function (req: NextApiRequest, res: NextApiResponse) {
     return withOptionalAuth(handler)(req, res);
   }
 }
-

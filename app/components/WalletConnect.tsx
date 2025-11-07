@@ -12,6 +12,9 @@ export default function WalletConnect() {
   const [connecting, setConnecting] = useState(false);
 
   useEffect(() => {
+    // Only run on client-side
+    if (typeof window === 'undefined') return;
+
     // Check if wallet is already connected
     checkWalletConnection();
 
@@ -22,16 +25,17 @@ export default function WalletConnect() {
     }
 
     return () => {
-      if (window.solana) {
+      if (typeof window !== 'undefined' && window.solana) {
         window.solana.off('connect', handleWalletConnect);
         window.solana.off('disconnect', handleWalletDisconnect);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const checkWalletConnection = async () => {
     try {
-      if (window.solana && window.solana.isPhantom) {
+      if (typeof window !== 'undefined' && window.solana && window.solana.isPhantom) {
         // Check if we have an authenticated user with a wallet
         // The auth context will handle restoring the session
       }
@@ -62,13 +66,15 @@ export default function WalletConnect() {
   const connectWallet = async () => {
     try {
       setConnecting(true);
-      if (!window.solana) {
+      if (typeof window === 'undefined' || !window.solana) {
         alert('Phantom wallet not found. Please install Phantom wallet.');
+        setConnecting(false);
         return;
       }
 
       if (!window.solana.isPhantom) {
         alert('Please use Phantom wallet.');
+        setConnecting(false);
         return;
       }
 
@@ -83,7 +89,7 @@ export default function WalletConnect() {
 
   const disconnectWallet = async () => {
     try {
-      if (window.solana) {
+      if (typeof window !== 'undefined' && window.solana) {
         await window.solana.disconnect();
       }
       // This will trigger the 'disconnect' event which calls handleWalletDisconnect

@@ -8,6 +8,7 @@
 import React, { createContext, useContext, useReducer, ReactNode, useCallback } from 'react';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { useAuth } from './AuthContext';
+import { UserRole } from '../types/auth';
 
 // ============================================================================
 // Types
@@ -451,7 +452,7 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
       projectsList = [...optimisticList, ...projectsList];
       
       // Apply role-based filtering
-      if (user?.role?.toString() === 'CREATOR') {
+      if (user?.role === UserRole.CREATOR) {
         projectsList = projectsList.filter((p) => p.creatorId === user.id);
       }
       
@@ -527,4 +528,3 @@ export function useProjects() {
 }
 
 export default ProjectContext;
-

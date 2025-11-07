@@ -34,7 +34,7 @@ export class DatabaseService {
     return this.userRepository.create({
       walletAddress,
       username: defaultUsername,
-      role: role as unknown as PrismaUserRole,
+      role: role.toUpperCase() as PrismaUserRole,
     });
   }
 
@@ -166,11 +166,16 @@ export class DatabaseService {
       return null;
     }
 
+    const normalizedRole =
+      typeof user.role === 'string'
+        ? (user.role.toLowerCase() as UserRole)
+        : UserRole.FUNDER;
+
     return {
       id: user.id,
       walletAddress: new PublicKey(user.walletAddress),
       username: user.username,
-      role: user.role as UserRole,
+      role: normalizedRole,
       reputation: user.reputation,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
@@ -192,5 +197,21 @@ export class DatabaseService {
   }
 }
 
-// Export singleton instance
-export const databaseService = new DatabaseService();
+// Export singleton instance - only create if DATABASE_URL is available
+let _databaseService: DatabaseService | null = null;
+
+export const databaseService = (() => {
+  if (!_databaseService && process.env.DATABASE_URL) {
+    try {
+      _databaseService = new DatabaseService();
+    } catch (error) {
+      console.warn('Failed to initialize database service:', error);
+    }
+  }
+  return _databaseService;
+})();
+
+// Helper to check if database is available
+export const isDatabaseAvailable = (): boolean => {
+  return !!databaseService && !!process.env.DATABASE_URL;
+};

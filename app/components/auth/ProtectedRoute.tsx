@@ -26,13 +26,19 @@ export default function ProtectedRoute({
 
     if (redirectIfAuthenticated && isAuthenticated) {
       // Redirect authenticated users away from login/signup pages
-      router.push('/');
+      // Only redirect if not already on the home page
+      if (router.pathname !== '/') {
+        router.push('/');
+      }
       return;
     }
 
     if (!redirectIfAuthenticated && !isAuthenticated) {
       // Redirect unauthenticated users to login
-      router.push(fallbackPath);
+      // Only redirect if not already on the fallback path
+      if (router.pathname !== fallbackPath) {
+        router.push(fallbackPath);
+      }
       return;
     }
 
@@ -43,13 +49,17 @@ export default function ProtectedRoute({
       user.role !== requiredRole &&
       user.role !== UserRole.ADMIN
     ) {
-      router.push('/unauthorized');
+      if (router.pathname !== '/unauthorized') {
+        router.push('/unauthorized');
+      }
       return;
     }
 
     // Check permission requirements
     if (requiredPermission && !hasPermission(requiredPermission)) {
-      router.push('/unauthorized');
+      if (router.pathname !== '/unauthorized') {
+        router.push('/unauthorized');
+      }
       return;
     }
   }, [

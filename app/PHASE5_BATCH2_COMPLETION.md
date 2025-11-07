@@ -677,7 +677,7 @@ ROI = (Capacity × 8760 × CF × Price / Investment) × 100
 - prisma/schema.prisma (3 new models, 7 new indexes)
 - lib/schemas/projectSchemas.ts (extended filters)
 - pages/api/projects/index.ts (enhanced filtering)
-- pages/api/projects/[id].ts (comprehensive data)
+- pages/api/projects/[id]/index.ts (comprehensive data)
 
 **Total:** 25 created + 3 modified = 28 files  
 **Total LOC:** ~5,970 lines

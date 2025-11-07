@@ -24,6 +24,7 @@ export interface SessionData {
  * Session Creation Input
  */
 export interface CreateSessionInput {
+  id?: string;
   userId: string;
   token: string;
   refreshToken?: string;
@@ -37,10 +38,13 @@ export interface CreateSessionInput {
  * Handles all session-related database operations
  */
 export class SessionService {
-  private prisma: PrismaClient;
+  private prisma: PrismaClient | undefined;
 
   constructor(prismaClient?: PrismaClient) {
     this.prisma = prismaClient || prisma;
+    if (!this.prisma) {
+      logger.warn('SessionService initialized without Prisma client');
+    }
   }
 
   /**
@@ -50,12 +54,16 @@ export class SessionService {
    * @returns Created session
    */
   async createSession(input: CreateSessionInput): Promise<SessionData> {
+    if (!this.prisma) {
+      throw new Error('Database not available. Please set DATABASE_URL environment variable.');
+    }
     try {
       // Check if user has too many active sessions
       await this.enforceSessionLimit(input.userId);
 
       const session = await this.prisma.session.create({
         data: {
+          id: input.id,
           userId: input.userId,
           token: input.token,
           refreshToken: input.refreshToken,
@@ -88,6 +96,10 @@ export class SessionService {
    * @returns Session data or null
    */
   async getSessionByToken(token: string): Promise<SessionData | null> {
+    if (!this.prisma) {
+      logger.warn('Prisma client not available, cannot get session');
+      return null;
+    }
     try {
       const session = await this.prisma.session.findUnique({
         where: { token },
@@ -115,6 +127,10 @@ export class SessionService {
    * @returns Session data or null
    */
   async getSessionById(sessionId: string): Promise<SessionData | null> {
+    if (!this.prisma) {
+      logger.warn('Prisma client not available, cannot get session');
+      return null;
+    }
     try {
       const session = await this.prisma.session.findUnique({
         where: { id: sessionId },
@@ -137,6 +153,10 @@ export class SessionService {
    * @returns Array of active sessions
    */
   async getUserSessions(userId: string): Promise<SessionData[]> {
+    if (!this.prisma) {
+      logger.warn('Prisma client not available, cannot get user sessions');
+      return [];
+    }
     try {
       const sessions = await this.prisma.session.findMany({
         where: {
@@ -584,4 +604,3 @@ export class SessionService {
 
 // Export singleton instance
 export const sessionService = new SessionService();
-

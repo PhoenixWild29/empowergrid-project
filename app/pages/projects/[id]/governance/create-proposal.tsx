@@ -16,7 +16,7 @@ import { useRouter } from 'next/router';
 
 export default function ProjectProposalCreationPage() {
   const router = useRouter();
-  const { projectId } = router.query;
+  const { id: projectId } = router.query;
   
   const [project, setProject] = useState<any>(null);
   const [formData, setFormData] = useState({
@@ -157,6 +157,5 @@ export default function ProjectProposalCreationPage() {
     </div>
   );
 }
-
 
 

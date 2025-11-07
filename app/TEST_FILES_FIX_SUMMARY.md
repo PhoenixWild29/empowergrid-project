@@ -56,7 +56,7 @@ Systematically updated all test mock data to match the new Prisma schema.
 **Changes:**
 - Updated `createProject` method parameter type to include new fields
 
-#### 7. `pages/api/projects/[id].ts`
+#### 7. `pages/api/projects/[id]/index.ts`
 **Changes:**
 - Changed `fundedAt` → `createdAt` in Funding orderBy
 - Added type assertions for milestones and fundings arrays
@@ -138,7 +138,7 @@ npm run type-check
 - ✅ `lib/repositories/projectRepository.ts`
 - ✅ `lib/services/projectService.ts`
 - ✅ `lib/services/databaseService.ts`
-- ✅ `pages/api/projects/[id].ts`
+- ✅ `pages/api/projects/[id]/index.ts`
 
 ---
 

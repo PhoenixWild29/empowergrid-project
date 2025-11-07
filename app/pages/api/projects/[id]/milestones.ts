@@ -185,5 +185,3 @@ async function projectMilestonesHandler(req: NextApiRequest, res: NextApiRespons
 
 export default withAuth(projectMilestonesHandler);
 
-
-

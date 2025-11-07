@@ -212,7 +212,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Provide your email if you'd like us to follow up with you
+                Provide your email if you&apos;d like us to follow up with you
               </p>
             </div>
 
@@ -265,7 +265,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
           <div className="mt-4 pt-4 border-t border-gray-200">
             <p className="text-xs text-gray-500">
               🔒 Your feedback is sent securely to our development team. We only collect the information
-              you provide and the current page you're on (not full URLs).
+              you provide and the current page you&apos;re on (not full URLs).
             </p>
           </div>
         </div>

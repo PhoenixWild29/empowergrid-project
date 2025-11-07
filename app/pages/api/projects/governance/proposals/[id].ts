@@ -1,5 +1,5 @@
 /**
- * GET/POST /api/projects/[projectId]/governance/proposals
+ * GET/POST /api/projects/governance/proposals/[id]
  * 
  * WO-148: Project-specific governance proposals
  * 
@@ -36,13 +36,13 @@ const ProjectProposalSchema = z.object({
 });
 
 async function projectGovernanceProposalsHandler(req: NextApiRequest, res: NextApiResponse) {
-  const { projectId } = req.query;
+  const { id: projectId } = req.query;
   const userId = (req as any).user?.id;
 
   if (!projectId || typeof projectId !== 'string') {
     return res.status(400).json({
       error: 'Invalid request',
-      message: 'projectId parameter is required',
+      message: 'id parameter is required',
     });
   }
 
@@ -210,6 +210,4 @@ async function checkProjectStakeholder(projectId: string, userId: string): Promi
 }
 
 export default withAuth(projectGovernanceProposalsHandler);
-
-
 

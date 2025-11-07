@@ -1,7 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { withOptionalAuth, withAuth } from '../../../lib/middleware/authMiddleware';
-import { prisma } from '../../../lib/prisma';
-import { UpdateProjectSchema } from '../../../lib/schemas/projectSchemas';
+import { withOptionalAuth, withAuth } from '../../../../lib/middleware/authMiddleware';
+import { prisma } from '../../../../lib/prisma';
+import { UpdateProjectSchema } from '../../../../lib/schemas/projectSchemas';
+import { UserRole } from '../../../../types/auth';
 
 /**
  * GET /api/projects/[id]
@@ -198,16 +199,14 @@ async function getProject(req: NextApiRequest, res: NextApiResponse) {
         milestoneProgress,
         completedMilestones,
         
-        // Funding information
+        // Funding data
         fundings: project.fundings,
-        funderCount: fundings.length,
-        uniqueFunders: new Set(fundings.map((f: any) => f.funderId)).size,
         averageFundingAmount,
-        fundingVelocity, // Fundings per day
+        fundingVelocity,
         
-        // Updates and comments
-        updates: project.updates,
+        // Comments and updates
         comments: project.comments,
+        updates: project.updates,
         
         // Energy metrics
         energyMetrics: project.energyMetrics,
@@ -215,9 +214,7 @@ async function getProject(req: NextApiRequest, res: NextApiResponse) {
         verifiedEnergyProduced,
         
         // Counts
-        totalUpdates: project._count.updates,
-        totalComments: project._count.comments,
-        totalEnergyMetrics: project._count.energyMetrics,
+        counts: project._count,
         
         // Timeline metrics
         daysSinceCreation,
@@ -229,22 +226,34 @@ async function getProject(req: NextApiRequest, res: NextApiResponse) {
     console.error('Get project error:', error);
     return res.status(500).json({
       error: 'Internal server error',
-      message: 'Failed to retrieve project',
+      message: 'Failed to load project',
     });
   }
 }
 
 /**
- * WO-67: Calculate funding velocity (fundings per day)
+ * Calculate funding velocity (SOL per day)
  */
 function calculateFundingVelocity(fundings: any[], createdAt: Date): number {
-  if (fundings.length === 0) return 0;
-  
-  const daysSinceCreation = Math.floor(
-    (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24)
+  if (fundings.length === 0) {
+    return 0;
+  }
+
+  const firstFundingDate = new Date(
+    fundings[fundings.length - 1]?.createdAt || createdAt
   );
-  
-  return daysSinceCreation > 0 ? fundings.length / daysSinceCreation : 0;
+
+  const daysSinceFirstFunding = Math.max(
+    (Date.now() - firstFundingDate.getTime()) / (1000 * 60 * 60 * 24),
+    1
+  );
+
+  const totalFunded = fundings.reduce(
+    (sum, funding) => sum + (funding.amount || 0),
+    0
+  );
+
+  return totalFunded / daysSinceFirstFunding;
 }
 
 /**
@@ -261,7 +270,9 @@ async function updateProject(req: NextApiRequest, res: NextApiResponse) {
   try {
     const { id } = req.query;
     const userId = (req as any).userId;
-    const userRole = (req as any).userRole;
+    const rawRole = (req as any).userRole ?? (req as any).user?.role;
+    const userRole =
+      typeof rawRole === 'string' ? rawRole.toLowerCase() : '';
 
     if (typeof id !== 'string') {
       return res.status(400).json({
@@ -281,7 +292,7 @@ async function updateProject(req: NextApiRequest, res: NextApiResponse) {
     }
 
     // Check authorization
-    if (project.creatorId !== userId && userRole !== 'ADMIN') {
+    if (project.creatorId !== userId && userRole !== UserRole.ADMIN) {
       return res.status(403).json({
         error: 'Forbidden',
         message: 'You can only update your own projects',
@@ -334,7 +345,9 @@ async function deleteProject(req: NextApiRequest, res: NextApiResponse) {
   try {
     const { id } = req.query;
     const userId = (req as any).userId;
-    const userRole = (req as any).userRole;
+    const rawRole = (req as any).userRole ?? (req as any).user?.role;
+    const userRole =
+      typeof rawRole === 'string' ? rawRole.toLowerCase() : '';
 
     if (typeof id !== 'string') {
       return res.status(400).json({
@@ -357,7 +370,7 @@ async function deleteProject(req: NextApiRequest, res: NextApiResponse) {
     }
 
     // Check authorization
-    if (project.creatorId !== userId && userRole !== 'ADMIN') {
+    if (project.creatorId !== userId && userRole !== UserRole.ADMIN) {
       return res.status(403).json({
         error: 'Forbidden',
         message: 'You can only delete your own projects',
@@ -365,7 +378,7 @@ async function deleteProject(req: NextApiRequest, res: NextApiResponse) {
     }
 
     // Prevent deletion if project has funding
-    if (project.fundings.length > 0 && userRole !== 'ADMIN') {
+    if (project.fundings.length > 0 && userRole !== UserRole.ADMIN) {
       return res.status(409).json({
         error: 'Conflict',
         message: 'Cannot delete project with existing funding',

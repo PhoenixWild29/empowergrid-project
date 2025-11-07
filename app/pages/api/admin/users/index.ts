@@ -1,8 +1,11 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
+import type { NextApiResponse } from 'next';
 import * as z from 'zod';
-
-const prisma = new PrismaClient();
+import {
+  withRole,
+  type AuthenticatedRequest,
+} from '../../../../lib/middleware/authMiddleware';
+import { UserRole } from '../../../../types/auth';
+import { prisma } from '../../../../lib/prisma';
 
 // Zod schemas for validation
 const CreateUserSchema = z.object({
@@ -32,14 +35,10 @@ const QuerySchema = z.object({
  * POST /api/admin/users - Create new user
  * GET /api/admin/users - List users with pagination and filtering
  */
-export default async function handler(
-  req: NextApiRequest,
+async function adminUsersHandler(
+  req: AuthenticatedRequest,
   res: NextApiResponse
 ) {
-  // Note: In production, add authentication middleware here
-  // const user = await getAuthenticatedUser(req);
-  // if (!user || user.role !== 'ADMIN') return res.status(403).json({ error: 'Forbidden' });
-
   try {
     if (req.method === 'POST') {
       // CREATE USER
@@ -154,3 +153,4 @@ export default async function handler(
   }
 }
 
+export default withRole([UserRole.ADMIN], adminUsersHandler);

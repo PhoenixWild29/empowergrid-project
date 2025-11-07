@@ -1,4 +1,36 @@
-import { logger } from '../logging/logger';
+// Import logger conditionally - only import on server side
+// On client, we'll create a console-based logger to avoid any winston dependencies
+// Use dynamic require with eval to prevent webpack from analyzing this
+let logger: any;
+if (typeof window === 'undefined') {
+  // Server-side: dynamically import the full logger
+  try {
+    // eslint-disable-next-line no-eval
+    logger = eval('require')('../logging/logger').logger;
+  } catch (error) {
+    // Fallback to console if logger fails to load
+    logger = {
+      error: (msg: string, meta?: any) => console.error(`[ERROR] ${msg}`, meta || ''),
+      warn: (msg: string, meta?: any) => console.warn(`[WARN] ${msg}`, meta || ''),
+      info: (msg: string, meta?: any) => console.info(`[INFO] ${msg}`, meta || ''),
+      log: (level: string, msg: string, meta?: any) => {
+        const method = level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'info';
+        console[method](`[${level.toUpperCase()}] ${msg}`, meta || '');
+      },
+    };
+  }
+} else {
+  // Client-side: create a simple console logger - NEVER import winston
+  logger = {
+    error: (msg: string, meta?: any) => console.error(`[ERROR] ${msg}`, meta || ''),
+    warn: (msg: string, meta?: any) => console.warn(`[WARN] ${msg}`, meta || ''),
+    info: (msg: string, meta?: any) => console.info(`[INFO] ${msg}`, meta || ''),
+    log: (level: string, msg: string, meta?: any) => {
+      const method = level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'info';
+      console[method](`[${level.toUpperCase()}] ${msg}`, meta || '');
+    },
+  };
+}
 import { performanceMonitor } from './performance';
 
 // Error severity levels

@@ -12,10 +12,14 @@
  * - Audit logging
  */
 
-import { NextApiRequest, NextApiResponse } from 'next';
-import { withAuth } from '../../../../lib/middleware/authMiddleware';
+import { NextApiResponse } from 'next';
+import {
+  withRole,
+  type AuthenticatedRequest,
+} from '../../../../lib/middleware/authMiddleware';
 import { z } from 'zod';
 import { RATE_LIMIT_CONFIGS } from '../../../../lib/middleware/rateLimitMiddleware';
+import { UserRole } from '../../../../types/auth';
 
 const RateLimitRuleSchema = z.object({
   targetEndpoint: z.string(),
@@ -29,11 +33,10 @@ const RateLimitRuleSchema = z.object({
 // In-memory storage for custom rules
 const rateLimitRules: Map<string, any> = new Map();
 
-async function rateLimitsHandler(req: NextApiRequest, res: NextApiResponse) {
-  if ((req as any).user?.role !== 'admin') {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-
+async function rateLimitsHandler(
+  req: AuthenticatedRequest,
+  res: NextApiResponse
+) {
   if (req.method === 'POST') {
     // WO-162: Create rate limit rule
     try {
@@ -44,7 +47,7 @@ async function rateLimitsHandler(req: NextApiRequest, res: NextApiResponse) {
         id: ruleId,
         ...rule,
         createdAt: new Date().toISOString(),
-        createdBy: (req as any).user?.id,
+        createdBy: req.user.id,
       };
 
       rateLimitRules.set(ruleId, newRule);
@@ -52,7 +55,7 @@ async function rateLimitsHandler(req: NextApiRequest, res: NextApiResponse) {
       // WO-162: Log change
       console.log('[WO-162] Rate limit rule created:', {
         ruleId,
-        admin: (req as any).user?.id,
+        admin: req.user.id,
         timestamp: new Date().toISOString(),
       });
 
@@ -129,7 +132,7 @@ async function rateLimitsHandler(req: NextApiRequest, res: NextApiResponse) {
       ...rule,
       ...updates,
       updatedAt: new Date().toISOString(),
-      updatedBy: (req as any).user?.id,
+      updatedBy: req.user.id,
     };
 
     rateLimitRules.set(ruleId, updatedRule);
@@ -137,7 +140,7 @@ async function rateLimitsHandler(req: NextApiRequest, res: NextApiResponse) {
     // WO-162: Log change
     console.log('[WO-162] Rate limit updated:', {
       ruleId,
-      admin: (req as any).user?.id,
+      admin: req.user.id,
       timestamp: new Date().toISOString(),
     });
 
@@ -151,7 +154,7 @@ async function rateLimitsHandler(req: NextApiRequest, res: NextApiResponse) {
   }
 }
 
-export default withAuth(rateLimitsHandler);
+export default withRole([UserRole.ADMIN], rateLimitsHandler);
 
 
 

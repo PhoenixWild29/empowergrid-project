@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { nanoid } from 'nanoid';
 import { verifySignature } from '../utils/solanaCrypto';
 import { validateNonce, consumeNonce } from '../utils/nonceGenerator';
 import { generateTokenPair } from '../utils/jwt';
@@ -176,17 +177,20 @@ export class AuthService {
         };
       }
 
-      // Step 6: Generate JWT tokens
+      // Step 6: Create session identifier and bind tokens to it
+      const sessionId = nanoid(32);
+
       const tokens = generateTokenPair(
         user.id,
         request.walletAddress,
         user.role,
-        '', // Will be set after session creation
+        sessionId,
         user.username
       );
 
       // Step 7: Create session
       const session = await this.sessionService.createSession({
+        id: sessionId,
         userId: user.id,
         token: tokens.accessToken.accessToken,
         refreshToken: tokens.refreshToken.accessToken,
@@ -198,7 +202,7 @@ export class AuthService {
       // Log successful login
       logger.info('User logged in successfully', {
         userId: user.id,
-        walletAddress: request.walletAddress,
+       walletAddress: request.walletAddress,
         sessionId: session.id,
         ipAddress: metadata?.ipAddress,
       });
@@ -288,31 +292,7 @@ export class AuthService {
         });
       }
 
-      // Convert to UserProfile format
-      const userProfile: UserProfile = {
-        id: dbUser.id,
-        walletAddress: { toBase58: () => dbUser!.walletAddress } as any, // Simplified
-        username: dbUser.username,
-        email: dbUser.email || undefined,
-        avatar: dbUser.avatar || undefined,
-        bio: dbUser.bio || undefined,
-        website: dbUser.website || undefined,
-        twitter: (dbUser.socialLinks as any)?.twitter,
-        linkedin: (dbUser.socialLinks as any)?.linkedin,
-        role: dbUser.role as UserRole,
-        reputation: dbUser.reputation,
-        createdAt: dbUser.createdAt,
-        updatedAt: dbUser.updatedAt,
-        verified: dbUser.verified,
-        stats: {
-          projectsCreated: dbUser.userStats?.projectsCreated || 0,
-          projectsFunded: dbUser.userStats?.projectsFunded || 0,
-          totalFunded: dbUser.userStats?.totalFunded || 0,
-          successfulProjects: dbUser.userStats?.successfulProjects || 0,
-        },
-      };
-
-      return userProfile;
+      return this.toUserProfile(dbUser);
     } catch (error) {
       logger.error('Failed to get or create user', {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -333,6 +313,52 @@ export class AuthService {
     const prefix = walletAddress.substring(0, 4);
     const suffix = walletAddress.substring(walletAddress.length - 4);
     return `user_${prefix}${suffix}`;
+  }
+
+  private normalizeRole(role?: string | null): UserRole {
+    const normalized = (role ?? '').toLowerCase();
+
+    if (
+      normalized === UserRole.ADMIN ||
+      normalized === UserRole.CREATOR ||
+      normalized === UserRole.FUNDER ||
+      normalized === UserRole.GUEST
+    ) {
+      return normalized;
+    }
+
+    return UserRole.FUNDER;
+  }
+
+  private toUserProfile(dbUser: any): UserProfile {
+    const walletAddressString = dbUser.walletAddress;
+    const socialLinks = (dbUser.socialLinks || {}) as Record<string, string>;
+
+    return {
+      id: dbUser.id,
+      walletAddress: {
+        toBase58: () => walletAddressString,
+        toString: () => walletAddressString,
+      } as any,
+      username: dbUser.username,
+      email: dbUser.email ?? undefined,
+      avatar: dbUser.avatar ?? undefined,
+      bio: dbUser.bio ?? undefined,
+      website: dbUser.website ?? undefined,
+      twitter: socialLinks?.twitter,
+      linkedin: socialLinks?.linkedin,
+      role: this.normalizeRole(dbUser.role),
+      reputation: dbUser.reputation,
+      createdAt: dbUser.createdAt,
+      updatedAt: dbUser.updatedAt,
+      verified: dbUser.verified,
+      stats: {
+        projectsCreated: dbUser.userStats?.projectsCreated || 0,
+        projectsFunded: dbUser.userStats?.projectsFunded || 0,
+        totalFunded: dbUser.userStats?.totalFunded || 0,
+        successfulProjects: dbUser.userStats?.successfulProjects || 0,
+      },
+    };
   }
 
   /**
@@ -406,31 +432,7 @@ export class AuthService {
         return null;
       }
 
-      // Convert to UserProfile
-      const userProfile: UserProfile = {
-        id: dbUser.id,
-        walletAddress: { toBase58: () => dbUser.walletAddress } as any,
-        username: dbUser.username,
-        email: dbUser.email || undefined,
-        avatar: dbUser.avatar || undefined,
-        bio: dbUser.bio || undefined,
-        website: dbUser.website || undefined,
-        twitter: (dbUser.socialLinks as any)?.twitter,
-        linkedin: (dbUser.socialLinks as any)?.linkedin,
-        role: dbUser.role as UserRole,
-        reputation: dbUser.reputation,
-        createdAt: dbUser.createdAt,
-        updatedAt: dbUser.updatedAt,
-        verified: dbUser.verified,
-        stats: {
-          projectsCreated: dbUser.userStats?.projectsCreated || 0,
-          projectsFunded: dbUser.userStats?.projectsFunded || 0,
-          totalFunded: dbUser.userStats?.totalFunded || 0,
-          successfulProjects: dbUser.userStats?.successfulProjects || 0,
-        },
-      };
-
-      return userProfile;
+      return this.toUserProfile(dbUser);
     } catch (error) {
       logger.error('Failed to get user by token', {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -442,4 +444,3 @@ export class AuthService {
 
 // Export singleton instance
 export const authService = new AuthService();
-

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from 'next/router';
 import Layout from '../../components/Layout';
+import { UserRole } from '../../types/auth';
 
 interface Permission {
   id: string;
@@ -76,7 +77,7 @@ export default function AdminRolesPage() {
 
   // Check if user is admin
   useEffect(() => {
-    if (!isAuthenticated || user?.role?.toString() !== 'ADMIN') {
+    if (!isAuthenticated || user?.role !== UserRole.ADMIN) {
       router.push('/');
     }
   }, [isAuthenticated, user, router]);
@@ -90,7 +91,7 @@ export default function AdminRolesPage() {
     return acc;
   }, {} as Record<string, Permission[]>);
 
-  if (!isAuthenticated || user?.role?.toString() !== 'ADMIN') {
+  if (!isAuthenticated || user?.role !== UserRole.ADMIN) {
     return null;
   }
 
@@ -493,4 +494,3 @@ export default function AdminRolesPage() {
     </Layout>
   );
 }
-

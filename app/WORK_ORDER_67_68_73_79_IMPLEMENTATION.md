@@ -38,7 +38,7 @@ Successfully implemented a comprehensive Project Details Dashboard system with f
 
 ### Implementation
 
-**File:** `app/pages/api/projects/[id].ts`
+**File:** `app/pages/api/projects/[id]/index.ts`
 
 **Enhanced Features:**
 - ✅ Comprehensive data retrieval (single query)
@@ -571,7 +571,7 @@ function calculateLCOE(
 ## Files Created
 
 ### API Enhancement
-1. `app/pages/api/projects/[id].ts` - Enhanced (WO-67)
+1. `app/pages/api/projects/[id]/index.ts` - Enhanced (WO-67)
 
 ### Main Dashboard
 2. `app/pages/projects/[id]/index.tsx` - Complete dashboard (WO-68)

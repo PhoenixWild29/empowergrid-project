@@ -12,14 +12,18 @@
  * - Immediate effect & logging
  */
 
-import { NextApiRequest, NextApiResponse } from 'next';
-import { withAuth } from '../../../../lib/middleware/authMiddleware';
+import { NextApiResponse } from 'next';
+import {
+  withRole,
+  type AuthenticatedRequest,
+} from '../../../../lib/middleware/authMiddleware';
 import {
   getSecurityHeadersConfig,
   updateSecurityHeadersConfig,
   type SecurityHeadersConfig,
 } from '../../../../lib/middleware/securityHeadersMiddleware';
 import { z } from 'zod';
+import { UserRole } from '../../../../types/auth';
 
 const SecurityHeaderPolicySchema = z.object({
   headerName: z.enum(['CSP', 'HSTS', 'X-Frame-Options', 'X-Content-Type-Options', 'Referrer-Policy']),
@@ -28,11 +32,10 @@ const SecurityHeaderPolicySchema = z.object({
   isEnabled: z.boolean().default(true),
 });
 
-async function securityHeadersHandler(req: NextApiRequest, res: NextApiResponse) {
-  if ((req as any).user?.role !== 'admin') {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-
+async function securityHeadersHandler(
+  req: AuthenticatedRequest,
+  res: NextApiResponse
+) {
   if (req.method === 'GET') {
     // WO-165: Retrieve current configuration
     const currentConfig = getSecurityHeadersConfig();
@@ -73,7 +76,7 @@ async function securityHeadersHandler(req: NextApiRequest, res: NextApiResponse)
       // WO-165: Log change
       console.log('[WO-165] Security header updated:', {
         headerName: policy.headerName,
-        admin: (req as any).user?.id,
+        admin: req.user.id,
         timestamp: new Date().toISOString(),
       });
 
@@ -137,7 +140,7 @@ function validateHeaderSyntax(headerName: string, value: string): {
   return { isValid: true };
 }
 
-export default withAuth(securityHeadersHandler);
+export default withRole([UserRole.ADMIN], securityHeadersHandler);
 
 
 

@@ -1,6 +1,7 @@
 import React, { ReactNode } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermissions } from '../../hooks/usePermissions';
+import { UserRole } from '../../types/auth';
 
 interface ProjectDashboardLayoutProps {
   children: ReactNode;
@@ -64,7 +65,8 @@ export default function ProjectDashboardLayout({ children }: ProjectDashboardLay
   const visibleItems = navigationItems.filter(item => {
     if (item.requiresAuth && !isAuthenticated) return false;
     if (!user) return !item.requiresAuth;
-    return item.roles.includes(user.role?.toString() || 'GUEST');
+    const roleKey = (user.role ?? UserRole.GUEST).toUpperCase();
+    return item.roles.includes(roleKey);
   });
 
   return (
@@ -86,7 +88,7 @@ export default function ProjectDashboardLayout({ children }: ProjectDashboardLay
         {isAuthenticated && (
           <div className="sidebar-footer">
             <div className="user-role-badge">
-              Role: <strong>{user?.role || 'Guest'}</strong>
+              Role: <strong>{(user?.role || UserRole.GUEST).toUpperCase()}</strong>
             </div>
           </div>
         )}

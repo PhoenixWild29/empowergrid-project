@@ -1,8 +1,12 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient, ProjectStatus } from '@prisma/client';
+import type { NextApiResponse } from 'next';
+import { ProjectStatus } from '@prisma/client';
 import * as z from 'zod';
-
-const prisma = new PrismaClient();
+import {
+  withRole,
+  type AuthenticatedRequest,
+} from '../../../../lib/middleware/authMiddleware';
+import { UserRole } from '../../../../types/auth';
+import { prisma } from '../../../../lib/prisma';
 
 const UpdateProjectSchema = z.object({
   title: z.string().min(3).max(200).optional(),
@@ -22,8 +26,8 @@ const UpdateProjectSchema = z.object({
  * PUT /api/admin/projects/[id] - Update project
  * DELETE /api/admin/projects/[id] - Delete project
  */
-export default async function handler(
-  req: NextApiRequest,
+async function adminProjectHandler(
+  req: AuthenticatedRequest,
   res: NextApiResponse
 ) {
   const { id } = req.query;
@@ -31,12 +35,6 @@ export default async function handler(
   if (typeof id !== 'string') {
     return res.status(400).json({ error: 'Invalid project ID' });
   }
-
-  // Note: In production, add authentication middleware here
-  // const user = await getAuthenticatedUser(req);
-  // if (!user || (user.role !== 'ADMIN' && !isProjectOwner(user.id, id))) {
-  //   return res.status(403).json({ error: 'Forbidden' });
-  // }
 
   try {
     if (req.method === 'GET') {
@@ -182,3 +180,5 @@ export default async function handler(
     });
   }
 }
+
+export default withRole([UserRole.ADMIN], adminProjectHandler);
