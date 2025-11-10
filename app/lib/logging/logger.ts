@@ -63,7 +63,6 @@ let loggerInstance = createConsoleLogger();
 
 if (typeof window === 'undefined') {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { createWinstonLogger } = require('./winstonLogger');
     loggerInstance = createWinstonLogger();
   } catch (error) {

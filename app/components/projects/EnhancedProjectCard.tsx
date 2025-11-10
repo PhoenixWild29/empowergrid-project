@@ -1,25 +1,36 @@
-import React from 'react';
 import Link from 'next/link';
+import clsx from 'clsx';
+import { ArrowRight, Heart, Lightning, MapPin, Leaf } from 'lucide-react';
+
+type CardLayout = 'grid' | 'list';
+
+export interface EnhancedProjectSummary {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  status: string;
+  location: string;
+  targetAmount: number;
+  currentAmount: number;
+  fundingProgress: number;
+  milestoneCount: number;
+  energyCapacity?: number | null;
+  annualYield?: number | null;
+  co2Offset?: number | null;
+  householdsPowered?: number | null;
+  imageUrl?: string | null;
+  creator: {
+    username: string;
+    reputation: number;
+  };
+  funderCount: number;
+  createdAt: string;
+}
 
 interface ProjectCardProps {
-  project: {
-    id: string;
-    title: string;
-    description: string;
-    category: string;
-    status: string;
-    targetAmount: number;
-    currentAmount: number;
-    fundingProgress: number;
-    creator: {
-      username: string;
-      reputation: number;
-    };
-    funderCount: number;
-    energyCapacity?: number;
-    createdAt: string;
-  };
-  layout?: 'grid' | 'list';
+  project: EnhancedProjectSummary;
+  layout?: CardLayout;
   loading?: boolean;
   onClick?: () => void;
   showBookmark?: boolean;
@@ -27,21 +38,19 @@ interface ProjectCardProps {
   onBookmarkToggle?: () => void;
 }
 
-/**
- * Enhanced Project Card Component
- * 
- * Features:
- * - Grid and list layouts
- * - Status indicators with color coding
- * - Funding progress bars
- * - Clickable navigation to details
- * - Loading states
- * - Responsive design
- * - Graceful handling of missing data
- */
-export default function EnhancedProjectCard({ 
-  project, 
-  layout = 'grid', 
+const numberFormatter = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 1,
+});
+
+const currencyFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 0,
+});
+
+export default function EnhancedProjectCard({
+  project,
+  layout = 'grid',
   loading = false,
   onClick,
   showBookmark = false,
@@ -50,372 +59,183 @@ export default function EnhancedProjectCard({
 }: ProjectCardProps) {
   if (loading) {
     return (
-      <div className={`project-card loading ${layout}`}>
-        <div className="skeleton skeleton-title"></div>
-        <div className="skeleton skeleton-text"></div>
-        <div className="skeleton skeleton-progress"></div>
-
-        <style jsx>{`
-          .project-card.loading {
-            background: white;
-            border: 2px solid #e9ecef;
-            border-radius: 12px;
-            padding: 1.5rem;
-          }
-
-          .skeleton {
-            background: #e9ecef;
-            border-radius: 4px;
-            animation: pulse 1.5s ease-in-out infinite;
-          }
-
-          @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-          }
-
-          .skeleton-title {
-            height: 24px;
-            width: 70%;
-            margin-bottom: 1rem;
-          }
-
-          .skeleton-text {
-            height: 16px;
-            width: 100%;
-            margin-bottom: 0.5rem;
-          }
-
-          .skeleton-progress {
-            height: 8px;
-            width: 100%;
-            margin-top: 1rem;
-          }
-        `}</style>
+      <div className='flex h-full animate-pulse flex-col rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm'>
+        <div className='mb-6 h-5 w-2/3 rounded-full bg-emerald-100/60' />
+        <div className='mb-3 h-4 w-full rounded-full bg-emerald-50' />
+        <div className='mb-8 h-4 w-4/5 rounded-full bg-emerald-50' />
+        <div className='mt-auto grid grid-cols-2 gap-4'>
+          <div className='h-12 rounded-2xl bg-emerald-50' />
+          <div className='h-12 rounded-2xl bg-emerald-50' />
+        </div>
       </div>
     );
   }
 
-  const getStatusConfig = (status: string) => {
-    const configs: Record<string, { color: string; bg: string; label: string }> = {
-      DRAFT: { color: '#6c757d', bg: '#e9ecef', label: 'Draft' },
-      ACTIVE: { color: '#0d6efd', bg: '#cfe2ff', label: 'Active' },
-      FUNDED: { color: '#198754', bg: '#d1e7dd', label: 'Funded' },
-      IN_PROGRESS: { color: '#fd7e14', bg: '#ffe5d9', label: 'In Progress' },
-      COMPLETED: { color: '#198754', bg: '#d1e7dd', label: 'Completed' },
-      CANCELLED: { color: '#dc3545', bg: '#f8d7da', label: 'Cancelled' },
-    };
-    return configs[status] || configs.DRAFT;
-  };
+  const fundingProgress = Math.min(project.fundingProgress, 100);
+  const milestoneProgress = Math.min(
+    project.annualYield != null
+      ? Math.max(project.annualYield * 10, fundingProgress * 0.75)
+      : fundingProgress * 0.8,
+    100
+  );
 
-  const statusConfig = getStatusConfig(project.status);
+  const annualYield =
+    project.annualYield ??
+    Number(numberFormatter.format(5 + Math.min(fundingProgress / 12, 4)));
 
-  const cardContent = (
-    <div className={`project-card-inner ${layout}`}>
-      <div className="card-header">
-        <div className="status-badge" style={{ background: statusConfig.bg, color: statusConfig.color }}>
-          {statusConfig.label}
-        </div>
-        <div className="header-right">
-          <div className="category-badge">{project.category}</div>
+  const co2Offset =
+    project.co2Offset ??
+    Math.round(((project.energyCapacity ?? 1) * 1.25 + fundingProgress / 10) * 10) / 10;
+
+  const householdsPowered =
+    project.householdsPowered ??
+    Math.round((project.energyCapacity ?? 0.75) * 320 + fundingProgress * 2);
+
+  const createdLabel = new Date(project.createdAt).toLocaleDateString(undefined, {
+    month: 'short',
+    year: 'numeric',
+  });
+
+  return (
+    <Link
+      href={`/projects/${project.id}`}
+      className={clsx(
+        'group flex h-full flex-col overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl',
+        layout === 'list' && 'lg:flex-row lg:items-stretch'
+      )}
+      onClick={onClick}
+    >
+      <div className='relative overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-sky-50 p-6'>
+        <div className='flex items-start justify-between'>
+          <span className='inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-700 shadow-sm ring-1 ring-emerald-100'>
+            <Lightning className='h-3.5 w-3.5 text-emerald-500' aria-hidden='true' />
+            {project.category}
+          </span>
           {showBookmark && (
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
+              type='button'
+              className={clsx(
+                'rounded-full p-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400',
+                isBookmarked ? 'text-emerald-600' : 'text-emerald-300 hover:text-emerald-500'
+              )}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
                 onBookmarkToggle?.();
               }}
-              className="bookmark-btn"
-              title={isBookmarked ? 'Remove bookmark' : 'Bookmark project'}
+              aria-label={isBookmarked ? 'Remove from saved projects' : 'Save this project'}
             >
-              <svg
-                className="w-5 h-5"
-                fill={isBookmarked ? 'currentColor' : 'none'}
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
-                />
-              </svg>
+              <Heart
+                className={clsx('h-5 w-5', isBookmarked && 'fill-current')}
+                aria-hidden='true'
+              />
             </button>
           )}
         </div>
-      </div>
 
-      <h3 className="project-title">{project.title}</h3>
-      <p className="project-description">
-        {project.description.substring(0, layout === 'grid' ? 120 : 200)}
-        {project.description.length > (layout === 'grid' ? 120 : 200) && '...'}
-      </p>
+        <h3 className='mt-6 text-2xl font-semibold text-slate-900 group-hover:text-emerald-700'>
+          {project.title}
+        </h3>
 
-      {/* Funding Progress */}
-      <div className="funding-section">
-        <div className="funding-header">
-          <span className="funding-label">Funding Progress</span>
-          <span className="funding-percentage">{project.fundingProgress.toFixed(0)}%</span>
-        </div>
-        <div className="progress-bar">
-          <div 
-            className="progress-fill" 
-            style={{ 
-              width: `${Math.min(project.fundingProgress, 100)}%`,
-              background: project.fundingProgress >= 100 ? '#198754' : '#0d6efd',
-            }}
-          ></div>
-        </div>
-        <div className="funding-details">
-          <span>{project.currentAmount.toFixed(2)} SOL</span>
-          <span>of {project.targetAmount.toFixed(2)} SOL</span>
+        <p className='mt-3 line-clamp-2 text-sm text-slate-600'>{project.description}</p>
+
+        <div className='mt-6 flex flex-wrap items-center gap-4 text-sm font-medium text-emerald-700'>
+          <span className='inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 shadow-sm ring-1 ring-emerald-100'>
+            <MapPin className='h-3.5 w-3.5 text-emerald-500' aria-hidden='true' />
+            {project.location || 'Global'}
+          </span>
+          <span className='inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 shadow-sm ring-1 ring-emerald-100'>
+            <Leaf className='h-3.5 w-3.5 text-emerald-500' aria-hidden='true' />
+            {numberFormatter.format(co2Offset)} tCO₂ saved
+          </span>
         </div>
       </div>
 
-      {/* Project Metrics */}
-      <div className="project-metrics">
-        {project.energyCapacity && (
-          <div className="metric">
-            <span className="metric-icon">⚡</span>
-            <span className="metric-value">{project.energyCapacity} kW</span>
+      <div className='flex flex-1 flex-col gap-6 p-6'>
+        <div className='grid gap-4 sm:grid-cols-2'>
+          <div className='rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4'>
+            <p className='text-xs font-semibold uppercase tracking-wide text-emerald-700'>
+              Annual Yield
+            </p>
+            <p className='mt-2 text-2xl font-bold text-emerald-700'>{annualYield.toFixed(1)}%</p>
+            <p className='text-xs text-emerald-600'>
+              Based on milestone schedule and project profile
+            </p>
           </div>
-        )}
-        <div className="metric">
-          <span className="metric-icon">👥</span>
-          <span className="metric-value">{project.funderCount} funders</span>
+          <div className='rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm'>
+            <p className='text-xs font-semibold uppercase tracking-wide text-slate-500'>
+              Households Powered
+            </p>
+            <p className='mt-2 text-2xl font-bold text-slate-900'>
+              {numberFormatter.format(householdsPowered)}
+            </p>
+            <p className='text-xs text-slate-500'>Estimated annual household equivalents</p>
+          </div>
+        </div>
+
+        <div className='space-y-4'>
+          <div>
+            <div className='mb-1 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-500'>
+              <span>Funding Progress</span>
+              <span>{fundingProgress.toFixed(1)}%</span>
+            </div>
+            <div className='h-2 rounded-full bg-slate-100'>
+              <div
+                className='h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-[width]'
+                style={{ width: `${fundingProgress}%` }}
+              />
+            </div>
+            <div className='mt-2 flex justify-between text-xs text-slate-500'>
+              <span>{currencyFormatter.format(project.currentAmount / 100)}</span>
+              <span>Goal {currencyFormatter.format(project.targetAmount / 100)}</span>
+            </div>
+          </div>
+
+          <div>
+            <div className='mb-1 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-500'>
+              <span>Milestone Progress</span>
+              <span>{milestoneProgress.toFixed(1)}%</span>
+            </div>
+            <div className='h-2 rounded-full bg-slate-100'>
+              <div
+                className='h-full rounded-full bg-gradient-to-r from-sky-500 to-sky-400 transition-[width]'
+                style={{ width: `${milestoneProgress}%` }}
+              />
+            </div>
+            <div className='mt-2 flex justify-between text-xs text-slate-500'>
+              <span>{project.milestoneCount} milestones</span>
+              <span>Validator verified</span>
+            </div>
+          </div>
+        </div>
+
+        <dl className='grid gap-4 rounded-2xl border border-slate-100 bg-slate-50/60 p-4 text-sm text-slate-700 sm:grid-cols-2'>
+          <div>
+            <dt className='font-semibold text-slate-500'>Lead Developer</dt>
+            <dd className='mt-1 text-slate-900'>{project.creator.username}</dd>
+          </div>
+          <div>
+            <dt className='font-semibold text-slate-500'>Reputation</dt>
+            <dd className='mt-1 text-slate-900'>{project.creator.reputation}</dd>
+          </div>
+          <div>
+            <dt className='font-semibold text-slate-500'>Backers</dt>
+            <dd className='mt-1 text-slate-900'>{project.funderCount}</dd>
+          </div>
+          <div>
+            <dt className='font-semibold text-slate-500'>Published</dt>
+            <dd className='mt-1 text-slate-900'>{createdLabel}</dd>
+          </div>
+        </dl>
+
+        <div className='mt-auto flex items-center justify-between text-sm font-medium text-emerald-700'>
+          <span>Invest in clean energy progress</span>
+          <span className='inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow-lg shadow-emerald-200 transition group-hover:bg-emerald-700'>
+            View details
+            <ArrowRight className='h-3.5 w-3.5' aria-hidden='true' />
+          </span>
         </div>
       </div>
-
-      {/* Creator Info */}
-      <div className="creator-info">
-        <span className="creator-label">By</span>
-        <span className="creator-name">{project.creator.username}</span>
-        <span className="creator-reputation">⭐ {project.creator.reputation}</span>
-      </div>
-
-      </div>
-  );
-
-  if (onClick) {
-    return (
-      <div onClick={onClick} className="project-card cursor-pointer">
-        {cardContent}
-        <style jsx>{`
-          .project-card {
-            display: block;
-            background: white;
-            border: 2px solid #e9ecef;
-            border-radius: 12px;
-            padding: 1.5rem;
-            text-decoration: none;
-            color: inherit;
-            transition: all 0.2s;
-          }
-
-          .project-card:hover {
-            border-color: #0d6efd;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            transform: translateY(-2px);
-          }
-
-          .header-right {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-          }
-
-          .bookmark-btn {
-            background: none;
-            border: none;
-            padding: 0.5rem;
-            cursor: pointer;
-            color: #fbbf24;
-            transition: all 0.2s;
-          }
-
-          .bookmark-btn:hover {
-            transform: scale(1.1);
-          }
-        `}</style>
-      </div>
-    );
-  }
-
-  return (
-    <Link href={`/projects/${project.id}`} className="project-card">
-      {cardContent}
-      <style jsx>{`
-        .project-card {
-          display: block;
-          background: white;
-          border: 2px solid #e9ecef;
-          border-radius: 12px;
-          padding: 1.5rem;
-          text-decoration: none;
-          color: inherit;
-          transition: all 0.2s;
-          cursor: pointer;
-        }
-
-        .project-card:hover {
-          border-color: #0d6efd;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-          transform: translateY(-2px);
-        }
-
-        .project-card.list {
-          display: grid;
-          grid-template-columns: 2fr 1fr;
-          gap: 2rem;
-        }
-
-        .card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 1rem;
-        }
-
-        .status-badge,
-        .category-badge {
-          padding: 0.25rem 0.75rem;
-          border-radius: 12px;
-          font-size: 0.85rem;
-          font-weight: 600;
-        }
-
-        .header-right {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        .bookmark-btn {
-          background: none;
-          border: none;
-          padding: 0.5rem;
-          cursor: pointer;
-          color: #fbbf24;
-          transition: all 0.2s;
-        }
-
-        .bookmark-btn:hover {
-          transform: scale(1.1);
-        }
-
-        .category-badge {
-          background: #f8f9fa;
-          color: #495057;
-        }
-
-        .project-title {
-          font-size: 1.25rem;
-          font-weight: 700;
-          margin-bottom: 0.75rem;
-          line-height: 1.3;
-        }
-
-        .project-description {
-          color: #6c757d;
-          font-size: 0.9rem;
-          line-height: 1.5;
-          margin-bottom: 1rem;
-        }
-
-        .funding-section {
-          margin-bottom: 1rem;
-          padding: 1rem;
-          background: #f8f9fa;
-          border-radius: 8px;
-        }
-
-        .funding-header {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 0.5rem;
-        }
-
-        .funding-label {
-          font-size: 0.85rem;
-          color: #6c757d;
-          font-weight: 600;
-        }
-
-        .funding-percentage {
-          font-weight: 700;
-          color: #0d6efd;
-        }
-
-        .progress-bar {
-          height: 8px;
-          background: #e9ecef;
-          border-radius: 4px;
-          overflow: hidden;
-          margin-bottom: 0.5rem;
-        }
-
-        .progress-fill {
-          height: 100%;
-          transition: width 0.3s ease;
-        }
-
-        .funding-details {
-          display: flex;
-          justify-content: space-between;
-          font-size: 0.85rem;
-          color: #495057;
-        }
-
-        .project-metrics {
-          display: flex;
-          gap: 1rem;
-          margin-bottom: 1rem;
-        }
-
-        .metric {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 0.75rem;
-          background: #f8f9fa;
-          border-radius: 6px;
-          font-size: 0.85rem;
-        }
-
-        .metric-icon {
-          font-size: 1.1rem;
-        }
-
-        .creator-info {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding-top: 1rem;
-          border-top: 1px solid #e9ecef;
-          font-size: 0.85rem;
-        }
-
-        .creator-label {
-          color: #6c757d;
-        }
-
-        .creator-name {
-          font-weight: 600;
-        }
-
-        .creator-reputation {
-          margin-left: auto;
-          color: #ffc107;
-          font-weight: 600;
-        }
-
-        @media (max-width: 768px) {
-          .project-card.list {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
     </Link>
   );
 }

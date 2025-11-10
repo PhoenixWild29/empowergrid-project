@@ -1,9 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import Layout from '../components/Layout';
+
+import { DashboardLayout } from '../components/layouts/DashboardLayout';
 import MetricsOverview from '../components/dashboard/MetricsOverview';
 import ProjectStatusCard from '../components/dashboard/ProjectStatusCard';
-import ActivityFeed from '../components/dashboard/ActivityFeed';
+import NotificationPanel from '../components/analytics/NotificationPanel';
+import RecommendationRail from '../components/analytics/RecommendationRail';
+import { useRecommendations } from '../hooks/useActivityStream';
 import { Project, Milestone } from '../types/program';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 
@@ -16,31 +19,27 @@ export default function Dashboard() {
   const { handleError } = useErrorHandler();
   const [projects, setProjects] = useState<ProjectWithMilestones[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState<
-    'all' | 'active' | 'funded' | 'completed'
-  >('all');
+  const [filter, setFilter] = useState<'all' | 'active' | 'funded' | 'completed'>('all');
+  const recommendations = useRecommendations('investor');
 
-  // Mock data - in real app, this would fetch from API
   useEffect(() => {
     const fetchProjects = async () => {
       try {
         setIsLoading(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await new Promise(resolve => setTimeout(resolve, 1200));
 
-        // Mock projects data
         const mockProjects: ProjectWithMilestones[] = [
           {
             id: 1,
             name: 'Solar Farm Alpha',
             description:
-              'Large-scale solar installation in rural Nevada providing clean energy to 500+ homes',
-            creator: {} as any, // Mock public key
+              'Large-scale solar installation in rural Nevada providing clean energy to 500+ homes.',
+            creator: {} as any,
             governanceAuthority: {} as any,
             oracleAuthority: {} as any,
             vault: {} as any,
             vaultBump: 255,
-            fundedAmount: 750000000000, // 750k SOL in lamports
+            fundedAmount: 750000000000,
             kwhTotal: 2500000,
             co2Total: 1250,
             lastMetricsRoot: new Array(32).fill(0),
@@ -87,14 +86,13 @@ export default function Dashboard() {
           {
             id: 2,
             name: 'Wind Turbine Grid',
-            description:
-              'Community-owned wind farm project connecting 10 turbines across 200 acres',
+            description: 'Community-owned wind farm project connecting 10 turbines across 200 acres.',
             creator: {} as any,
             governanceAuthority: {} as any,
             oracleAuthority: {} as any,
             vault: {} as any,
             vaultBump: 255,
-            fundedAmount: 500000000000, // 500k SOL
+            fundedAmount: 500000000000,
             kwhTotal: 1800000,
             co2Total: 900,
             lastMetricsRoot: new Array(32).fill(0),
@@ -133,13 +131,13 @@ export default function Dashboard() {
             id: 3,
             name: 'Hydro Power Station',
             description:
-              'Small hydroelectric dam providing sustainable energy to local community',
+              'Small hydroelectric dam providing resilient energy to a cooperative of 9 villages.',
             creator: {} as any,
             governanceAuthority: {} as any,
             oracleAuthority: {} as any,
             vault: {} as any,
             vaultBump: 255,
-            fundedAmount: 250000000000, // 250k SOL
+            fundedAmount: 250000000000,
             kwhTotal: 800000,
             co2Total: 400,
             lastMetricsRoot: new Array(32).fill(0),
@@ -179,16 +177,12 @@ export default function Dashboard() {
   }, [handleError]);
 
   const filteredProjects = projects.filter(project => {
-    const completedMilestones = project.milestones.filter(
-      m => m.released
-    ).length;
+    const completedMilestones = project.milestones.filter(m => m.released).length;
     const totalMilestones = project.milestones.length;
 
     switch (filter) {
       case 'active':
-        return (
-          project.fundedAmount > 0 && completedMilestones < totalMilestones
-        );
+        return project.fundedAmount > 0 && completedMilestones < totalMilestones;
       case 'funded':
         return project.fundedAmount > 0 && completedMilestones === 0;
       case 'completed':
@@ -213,10 +207,10 @@ export default function Dashboard() {
   }) => (
     <button
       onClick={() => setFilter(value)}
-      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+      className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
         filter === value
-          ? 'bg-blue-600 text-white'
-          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200'
+          : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
       }`}
     >
       {label} ({count})
@@ -224,124 +218,90 @@ export default function Dashboard() {
   );
 
   return (
-    <Layout>
-      <div className='min-h-screen bg-gray-50'>
-        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
-          {/* Header */}
-          <div className='mb-8'>
-            <h1 className='text-3xl font-bold text-gray-900'>
-              Project Dashboard
-            </h1>
-            <p className='text-gray-600 mt-2'>
-              Monitor renewable energy projects, track funding progress, and
-              view platform metrics
-            </p>
-          </div>
+    <DashboardLayout>
+      <div className='space-y-10'>
+        <header className='space-y-3'>
+          <h1 className='text-3xl font-bold text-gray-900 sm:text-4xl'>Investor Home Overview</h1>
+          <p className='max-w-2xl text-base text-gray-600'>Monitor renewable projects, funding momentum, and impact metrics in one place. All metrics update as milestones are verified and funds are released from escrow.</p>
+        </header>
 
-          {/* Platform Metrics */}
-          <div className='mb-12'>
-            <MetricsOverview />
-          </div>
+        <section>
+          <MetricsOverview />
+        </section>
 
-          {/* Main Content Grid */}
-          <div className='grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12'>
-            {/* Projects Section - Takes 2 columns on large screens */}
-            <div className='lg:col-span-2'>
-              {/* Project Filters */}
-              <div className='mb-8'>
-                <h2 className='text-2xl font-bold text-gray-900 mb-4'>
-                  Projects
-                </h2>
-                <div className='flex flex-wrap gap-2'>
-                  <FilterButton
-                    value='all'
-                    label='All Projects'
-                    count={projects.length}
-                  />
-                  <FilterButton
-                    value='active'
-                    label='Active'
-                    count={
-                      projects.filter(p => {
-                        const completed = p.milestones.filter(
-                          m => m.released
-                        ).length;
-                        return (
-                          p.fundedAmount > 0 && completed < p.milestones.length
-                        );
-                      }).length
-                    }
-                  />
-                  <FilterButton
-                    value='funded'
-                    label='Recently Funded'
-                    count={
-                      projects.filter(
-                        p =>
-                          p.fundedAmount > 0 &&
-                          p.milestones.every(m => !m.released)
-                      ).length
-                    }
-                  />
-                  <FilterButton
-                    value='completed'
-                    label='Completed'
-                    count={
-                      projects.filter(p => p.milestones.every(m => m.released))
-                        .length
-                    }
-                  />
-                </div>
+        <section className='grid grid-cols-1 gap-8 lg:grid-cols-3'>
+          <article className='lg:col-span-2 space-y-8'>
+            <div className='flex flex-wrap items-center gap-3'>
+              <h2 className='text-2xl font-semibold text-gray-900'>Projects</h2>
+              <div className='flex flex-wrap gap-2'>
+                <FilterButton value='all' label='All Projects' count={projects.length} />
+                <FilterButton
+                  value='active'
+                  label='Active'
+                  count={
+                    projects.filter(project => {
+                      const completed = project.milestones.filter(m => m.released).length;
+                      return project.fundedAmount > 0 && completed < project.milestones.length;
+                    }).length
+                  }
+                />
+                <FilterButton
+                  value='funded'
+                  label='Recently Funded'
+                  count={
+                    projects.filter(project => project.fundedAmount > 0 && project.milestones.every(m => !m.released)).length
+                  }
+                />
+                <FilterButton
+                  value='completed'
+                  label='Completed'
+                  count={projects.filter(project => project.milestones.every(m => m.released)).length}
+                />
               </div>
-
-              {/* Projects Grid */}
-              {isLoading ? (
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                  {[...Array(6)].map((_, i) => (
-                    <div
-                      key={i}
-                      className='bg-white rounded-lg shadow-md p-6 animate-pulse'
-                    >
-                      <div className='h-4 bg-gray-200 rounded w-3/4 mb-2'></div>
-                      <div className='h-4 bg-gray-200 rounded w-1/2 mb-4'></div>
-                      <div className='h-20 bg-gray-200 rounded mb-4'></div>
-                      <div className='h-8 bg-gray-200 rounded'></div>
-                    </div>
-                  ))}
-                </div>
-              ) : filteredProjects.length === 0 ? (
-                <div className='text-center py-12'>
-                  <div className='text-6xl text-gray-300 mb-4'>📊</div>
-                  <h3 className='text-lg font-medium text-gray-900 mb-2'>
-                    No projects found
-                  </h3>
-                  <p className='text-gray-600'>
-                    {filter === 'all'
-                      ? 'No projects have been created yet.'
-                      : `No projects match the "${filter}" filter.`}
-                  </p>
-                </div>
-              ) : (
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                  {filteredProjects.map(project => (
-                    <ProjectStatusCard
-                      key={project.id}
-                      project={project}
-                      milestones={project.milestones}
-                      onViewDetails={handleViewProjectDetails}
-                    />
-                  ))}
-                </div>
-              )}
             </div>
 
-            {/* Activity Feed - Takes 1 column on large screens */}
-            <div className='lg:col-span-1'>
-              <ActivityFeed />
-            </div>
-          </div>
-        </div>
+            {recommendations.isLoading ? (
+              <div className='h-28 animate-pulse rounded-3xl bg-slate-100' />
+            ) : recommendations.isError ? (
+              <div className='rounded-3xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-600'>
+                Recommendations unavailable. Please try again later.
+              </div>
+            ) : (
+              <RecommendationRail cards={recommendations.data?.recommendations ?? []} />
+            )}
+
+            {isLoading ? (
+              <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
+                {[...Array(4)].map((_, index) => (
+                  <div key={index} className='h-64 rounded-2xl border border-gray-100 bg-gray-100 animate-pulse' />
+                ))}
+              </div>
+            ) : filteredProjects.length === 0 ? (
+              <div className='rounded-3xl border border-dashed border-emerald-200 bg-emerald-50 p-10 text-center'>
+                <div className='text-4xl'>📊</div>
+                <h3 className='mt-3 text-lg font-semibold text-gray-900'>No projects match this filter yet</h3>
+                <p className='mt-2 text-sm text-gray-600'>Try selecting a different filter or explore new opportunities in the marketplace.</p>
+              </div>
+            ) : (
+              <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
+                {filteredProjects.map(project => (
+                  <ProjectStatusCard
+                    key={project.id}
+                    project={project}
+                    milestones={project.milestones}
+                    onViewDetails={handleViewProjectDetails}
+                  />
+                ))}
+              </div>
+            )}
+          </article>
+
+          <aside className='lg:col-span-1'>
+            <NotificationPanel />
+          </aside>
+        </section>
       </div>
-    </Layout>
+    </DashboardLayout>
   );
 }
+

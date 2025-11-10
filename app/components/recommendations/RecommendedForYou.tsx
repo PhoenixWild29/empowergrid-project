@@ -15,6 +15,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 
 interface Recommendation {
   project: {
@@ -279,9 +280,10 @@ export default function RecommendedForYou({ limit = 6 }: RecommendedForYouProps)
       <div className="mt-6 text-center">
         <Link
           href="/projects/discover"
-          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+          className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
         >
-          See All Projects →
+          Discover more projects
+          <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
         </Link>
       </div>
     </div>

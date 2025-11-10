@@ -10,9 +10,7 @@ if (typeof window !== 'undefined') {
   throw new Error('winstonLogger.ts should never be imported on the client side');
 }
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const winston = require('winston');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const path = require('path');
 
 import { LOG_LEVELS, LogLevel } from './logger';

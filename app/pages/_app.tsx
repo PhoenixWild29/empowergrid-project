@@ -10,6 +10,10 @@ import FeedbackButton from '../components/feedback/FeedbackButton';
 import { initializeErrorTracking, monitorWebVitals } from '../lib/utils/errorTracking';
 import { errorLogger } from '../lib/utils/comprehensiveErrorLogger';
 import ErrorLoggerPanel from '../components/ErrorLoggerPanel';
+import { TransactionFeedbackProvider } from '../contexts/TransactionFeedbackContext';
+import TransactionFeedbackPanel from '../components/transactions/TransactionFeedbackPanel';
+import { SocketProvider } from '../contexts/SocketContext';
+import { NotificationToast } from '../components/notifications/NotificationToast';
 
 export default function App({ Component, pageProps }: AppProps) {
   // Create a client instance for React Query
@@ -30,8 +34,10 @@ export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        const stats = errorLogger.getStats();
-        console.log('[App] Error logger initialized. Current stats:', stats);
+        if (errorLogger) {
+          const stats = errorLogger.getStats();
+          console.log('[App] Error logger initialized. Current stats:', stats);
+        }
       } catch (error) {
         console.error('[App] Error logger initialization check failed:', error);
       }
@@ -50,14 +56,16 @@ export default function App({ Component, pageProps }: AppProps) {
             if (errorString.includes('Fast Refresh') || errorString.includes('Next.js') || errorString.includes('runtime error')) {
               const error = args.find(a => a instanceof Error) || new Error(errorString);
               try {
-                errorLogger.logNextJSError(error, {
-                  args: args.map(a => {
-                    if (a instanceof Error) {
-                      return { name: a.name, message: a.message, stack: a.stack };
-                    }
-                    return typeof a === 'object' ? JSON.stringify(a) : String(a);
-                  }),
-                });
+                if (errorLogger) {
+                  errorLogger.logNextJSError(error, {
+                    args: args.map(a => {
+                      if (a instanceof Error) {
+                        return { name: a.name, message: a.message, stack: a.stack };
+                      }
+                      return typeof a === 'object' ? JSON.stringify(a) : String(a);
+                    }),
+                  });
+                }
               } catch (logErr) {
                 // If logging fails, don't throw - just continue
                 console.warn('Failed to log Next.js error:', logErr);
@@ -90,14 +98,20 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ProjectProvider>
-          <ErrorBoundary>
-            <Component {...pageProps} />
-            <ToastContainer position='top-right' />
-            <FeedbackButton />
-            <ErrorLoggerPanel />
-          </ErrorBoundary>
-        </ProjectProvider>
+        <SocketProvider>
+          <ProjectProvider>
+            <TransactionFeedbackProvider>
+              <ErrorBoundary>
+                <Component {...pageProps} />
+                <ToastContainer position='top-right' />
+                <NotificationToast />
+                <FeedbackButton />
+                <TransactionFeedbackPanel />
+                <ErrorLoggerPanel />
+              </ErrorBoundary>
+            </TransactionFeedbackProvider>
+          </ProjectProvider>
+        </SocketProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
