@@ -16,6 +16,10 @@ import { withAuth } from '../../../../lib/middleware/authMiddleware';
 import { prisma } from '../../../../lib/prisma';
 import { getOracleData } from '../../../../lib/services/oracleService';
 import { z } from 'zod';
+import {
+  emitMilestoneVerified,
+  emitMilestoneDelayed,
+} from '../../../../lib/realtime/notificationHelpers';
 
 // WO-111: Verification submission schema
 const VerificationSubmissionSchema = z.object({
@@ -154,6 +158,52 @@ async function verifyMilestoneHandler(req: NextApiRequest, res: NextApiResponse)
       });
 
       console.log('[WO-111] Milestone verified and status updated');
+
+      // Emit real-time notification to project investors
+      try {
+        // Get all funders for this project
+        const funders = await prisma.funding.findMany({
+          where: { projectId: milestone.projectId },
+          select: { funderId: true },
+          distinct: ['funderId'],
+        });
+
+        // Emit notification to each funder
+        for (const funding of funders) {
+          await emitMilestoneVerified(
+            funding.funderId,
+            milestone.projectId,
+            milestoneId,
+            milestone.project.title,
+            milestone.title
+          );
+        }
+      } catch (notifError) {
+        console.error('[WO-111] Failed to emit milestone verification notification', notifError);
+        // Don't fail the request if notification fails
+      }
+    } else if (status === 'FAILED') {
+      // Emit delay notification if verification failed
+      try {
+        const funders = await prisma.funding.findMany({
+          where: { projectId: milestone.projectId },
+          select: { funderId: true },
+          distinct: ['funderId'],
+        });
+
+        for (const funding of funders) {
+          await emitMilestoneDelayed(
+            funding.funderId,
+            milestone.projectId,
+            milestoneId,
+            milestone.project.title,
+            milestone.title,
+            `Energy target not met: ${energyProduced} kWh produced (target: ${energyTarget} kWh)`
+          );
+        }
+      } catch (notifError) {
+        console.error('[WO-111] Failed to emit milestone delay notification', notifError);
+      }
     }
 
     const responseTime = Date.now() - startTime;

@@ -19,6 +19,11 @@ import { z } from 'zod';
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { prisma } from '../../../../lib/prisma';
 import { withAuth } from '../../../../lib/middleware/authMiddleware';
+import {
+  emitTransactionConfirmed,
+  emitTransactionFailed,
+  emitProjectFunded,
+} from '../../../../lib/realtime/notificationHelpers';
 
 /**
  * Funding request schema
@@ -141,6 +146,18 @@ async function fundProject(req: NextApiRequest, res: NextApiResponse) {
       });
     } catch (blockchainError) {
       console.error('[WO-52] Blockchain transaction failed:', blockchainError);
+      
+      // Emit transaction failed notification
+      try {
+        await emitTransactionFailed(
+          userId,
+          'pending',
+          blockchainError instanceof Error ? blockchainError.message : 'Unknown blockchain error'
+        );
+      } catch (notifError) {
+        console.error('[WO-52] Failed to emit transaction failure notification', notifError);
+      }
+
       return res.status(500).json({
         error: 'Blockchain transaction failed',
         message: 'Failed to initiate escrow transaction on Solana. Please try again.',
@@ -192,6 +209,29 @@ async function fundProject(req: NextApiRequest, res: NextApiResponse) {
       newTotalFunding: newTotalAmount,
       goalReached,
     });
+
+    // Emit real-time notifications
+    try {
+      // Notify the funder about transaction confirmation
+      await emitTransactionConfirmed(
+        userId,
+        blockchainTxHash,
+        amount,
+        currency,
+        project.title
+      );
+
+      // Notify project followers about new funding
+      await emitProjectFunded(
+        project.id,
+        project.title,
+        amount,
+        currency
+      );
+    } catch (notifError) {
+      console.error('[WO-52] Failed to emit funding notifications', notifError);
+      // Don't fail the request if notification fails
+    }
 
     // WO-72: Return detailed confirmation
     return res.status(201).json({

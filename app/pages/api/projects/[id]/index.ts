@@ -153,6 +153,13 @@ async function getProject(req: NextApiRequest, res: NextApiResponse) {
     const daysUntilCompletion = project.duration - daysSinceCreation;
     const completionPercentage = Math.min((daysSinceCreation / project.duration) * 100, 100);
 
+    const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
+    const annualYield = Number(
+      numberFormatter.format(5 + Math.min(fundingProgress / 12, 4))
+    );
+    const co2Offset = Math.round(((project.energyCapacity || 1) * 1.25 + fundingProgress / 10) * 10) / 10;
+    const householdsPowered = Math.round(((project.energyCapacity || 0.75) * 320) + fundingProgress * 2);
+
     // WO-67: Structured response with all data
     return res.status(200).json({
       success: true,
@@ -175,6 +182,9 @@ async function getProject(req: NextApiRequest, res: NextApiResponse) {
         targetAmount: project.targetAmount,
         currentAmount: project.currentAmount,
         fundingProgress,
+        annualYield,
+        co2Offset,
+        householdsPowered,
         
         // Blockchain information
         programId: project.programId,

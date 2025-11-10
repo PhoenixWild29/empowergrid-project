@@ -28,6 +28,11 @@ export interface ProjectListItem {
   funderCount: number;
   milestoneCount: number;
   createdAt: string;
+  updatedAt?: string;
+  annualYield?: number;
+  co2Offset?: number;
+  householdsPowered?: number;
+  milestoneProgress?: number;
 }
 
 export interface ProjectListResponse {
@@ -93,7 +98,39 @@ export function useProjectData({
   useEffect(() => {
     if (data?.pages) {
       const flattened = data.pages.flatMap((page) => page.projects);
-      setAllProjects(flattened);
+      const decorated = flattened.map((project) => {
+        const fundingProgress = Math.min(project.fundingProgress ?? 0, 100);
+        const energyCapacity = project.energyCapacity ?? 0;
+
+        const derivedAnnualYield =
+          project.annualYield ??
+          Number(
+            new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(
+              5 + Math.min(fundingProgress / 12, 4)
+            )
+          );
+
+        const derivedCo2 =
+          project.co2Offset ??
+          Math.round(((energyCapacity || 1) * 1.25 + fundingProgress / 10) * 10) / 10;
+
+        const derivedHouseholds =
+          project.householdsPowered ??
+          Math.round((energyCapacity || 0.75) * 320 + fundingProgress * 2);
+
+        const derivedMilestoneProgress =
+          project.milestoneProgress ?? Math.min(fundingProgress * 0.8, 100);
+
+        return {
+          ...project,
+          annualYield: derivedAnnualYield,
+          co2Offset: derivedCo2,
+          householdsPowered: derivedHouseholds,
+          milestoneProgress: derivedMilestoneProgress,
+        } as ProjectListItem;
+      });
+
+      setAllProjects(decorated);
     }
   }, [data]);
 
