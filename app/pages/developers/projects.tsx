@@ -54,14 +54,14 @@ export default function DeveloperProjectsPage() {
                 <div className='mt-2 h-2 w-full overflow-hidden rounded-full bg-emerald-100'>
                   <div
                     className='h-full rounded-full bg-emerald-500 transition-all'
-                    style={{ width: ${project.fundingProgress}% }}
+                    style={{ width: `${project.fundingProgress}%` }}
                   />
                 </div>
               </div>
               <p className='mt-4 text-sm text-gray-600'>{project.nextMilestone}</p>
               <div className='mt-6 flex gap-3'>
                 <Link
-                  href={/projects/}
+                  href={`/projects/${project.id}`}
                   className='rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700'
                 >
                   View project

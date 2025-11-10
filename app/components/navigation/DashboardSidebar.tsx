@@ -57,7 +57,7 @@ export const DashboardSidebar = ({ className }: DashboardSidebarProps) => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const navLinks = useMemo(() => {
-    if (user?.role === UserRole.DEVELOPER || user?.role === UserRole.ADMIN) {
+    if (user?.role === UserRole.CREATOR || user?.role === UserRole.ADMIN) {
       return [...BASE_LINKS, DIVIDER_LINK, ...DEVELOPER_LINKS];
     }
     return BASE_LINKS;

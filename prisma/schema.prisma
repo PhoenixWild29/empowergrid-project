@@ -1,0 +1,120 @@
+model GovernanceSettings {
+   id                String   @id @default(cuid())
+   
+   // System-wide governance configuration
+   minQuorum         Int      @default(10) // Minimum quorum percentage
+   votingPeriodDays  Int      @default(7)  // Voting period in days
+   proposalThreshold Int      @default(100) // Minimum tokens to create proposal
+   
+   // Token configuration
+   governanceToken   String?  // Governance token mint address
+   tokenDecimals     Int      @default(9)
+   
+   // Advanced settings
+   executionDelay    Int      @default(86400) // Delay before execution (seconds)
+   minTokensToVote   Int      @default(1) // Minimum tokens required to vote
+   
+   // Metadata
+   isActive          Boolean  @default(true)
+   
+   // Timestamps
+   createdAt         DateTime @default(now())
+   updatedAt         DateTime @updatedAt
+   
+   @@map("governance_settings")
+ }
+
+model EscrowConfiguration {
+  id                String   @id @default(cuid())
+  solEscrowAddress  String?
+  usdcMintAddress   String?
+  usdcEscrowAccount String?
+  usdcDecimals      Int      @default(6)
+  updatedBy         String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("escrow_configuration")
+}
+
+model EscrowHealthLog {
+  id           String   @id @default(cuid())
+  solBalance   Float?
+  usdcBalance  Float?
+  alerts       Json?
+  cluster      String?
+  endpoint     String?
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("escrow_health_log")
+}
+ 
+ // WO-141: Proposal Type Enum
+ enum ProposalType {
+
+// Analytics & Notifications
+
+enum ActivitySeverity {
+  INFO
+  SUCCESS
+  WARNING
+  CRITICAL
+}
+
+enum ActivityCategory {
+  FUNDING
+  MILESTONE
+  GOVERNANCE
+  IMPACT
+}
+
+enum RecommendationCategory {
+  INVESTOR
+  DEVELOPER
+  VALIDATOR
+}
+
+model ActivityEvent {
+  id           String           @id @default(cuid())
+  title        String
+  description  String
+  severity     ActivitySeverity @default(INFO)
+  category     ActivityCategory @default(IMPACT)
+  occurredAt   DateTime         @default(now())
+  metadata     Json?
+  acknowledgedAt DateTime?
+  createdAt    DateTime         @default(now())
+
+  @@index([category])
+  @@index([severity])
+  @@index([occurredAt])
+}
+
+model NotificationPreference {
+  id         String   @id @default(cuid())
+  userId     String
+  channels   Json
+  categories Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId])
+}
+
+model RecommendationSnapshot {
+  id         String                  @id @default(cuid())
+  userId     String?
+  category   RecommendationCategory  @default(INVESTOR)
+  title      String
+  summary    String
+  actionLabel String
+  href       String
+  score      Float                   @default(0)
+  createdAt  DateTime                @default(now())
+  expiresAt  DateTime?
+  metadata   Json?
+
+  @@index([userId])
+  @@index([category])
+}

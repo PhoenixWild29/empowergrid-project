@@ -1,20 +1,3 @@
-/**
- * Project Discovery Page
- * 
- * Comprehensive project discovery interface with:
- * - Virtual scrolling grid (WO#64)
- * - Advanced filtering (WO#70)
- * - Intelligent search (WO#76)
- * 
- * Features:
- * - High-performance virtual scrolling
- * - Real-time filters
- * - Autocomplete search
- * - Saved searches
- * - Infinite scroll
- * - Bookmarking
- */
-
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 
@@ -77,10 +60,10 @@ export default function ProjectDiscoveryPage() {
                 Empower communities · Build renewable microgrids
               </span>
               <h1 className='text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl'>
-                Fund verified renewable projects with milestone-protected escrow
+                Fund verified renewable energy projects with milestone-protected escrow
               </h1>
               <p className='text-sm leading-6 text-emerald-50/90 sm:text-base'>
-                Explore community-owned solar, wind, and microgrid initiatives. Funds are released only when independent validators confirm milestone completion.
+                Explore community-owned solar, wind, and microgrid initiatives. Each project releases funds only when independent validators confirm milestone completion.
               </p>
             </div>
             <dl className='grid w-full max-w-md grid-cols-2 gap-6 rounded-3xl bg-white/10 p-6 text-left text-sm font-medium lg:w-auto lg:grid-cols-1'>
@@ -98,7 +81,7 @@ export default function ProjectDiscoveryPage() {
               </div>
             </dl>
           </div>
-          <div className='pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-white/10 blur-3xl lg:h-72 lg:w-72' aria-hidden='true' />
+          <div className='pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-white/10 blur-3xl lg:h-72 lg:w-72' />
         </section>
 
         <section className='rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm sm:p-8'>
@@ -113,7 +96,7 @@ export default function ProjectDiscoveryPage() {
 
           <div className='mt-6 rounded-2xl border border-emerald-100/70 bg-emerald-50/40 p-4 text-sm text-emerald-800 sm:flex sm:items-center sm:justify-between'>
             <p>
-              <strong className='font-semibold'>{totalCount}</strong> regenerative energy projects match your criteria.
+              <strong className='font-semibold'>{totalCount}</strong> regenerative energy projects match your current criteria.
             </p>
             <p className='mt-2 text-xs text-emerald-700 sm:mt-0'>
               {activeFilterCount > 0 ? `${activeFilterCount} filters applied` : 'Refine results with smart filters'}
@@ -152,9 +135,3 @@ export default function ProjectDiscoveryPage() {
     </Layout>
   );
 }
-
-
-
-
-
-

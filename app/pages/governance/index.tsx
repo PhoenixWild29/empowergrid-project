@@ -93,7 +93,7 @@ export default function GovernanceConsolePage() {
             <section className='rounded-3xl border border-emerald-100 bg-emerald-50 p-6 text-sm text-emerald-700 shadow-sm'>
               <h2 className='text-sm font-semibold text-emerald-900'>Governance health checklist</h2>
               <ul className='mt-3 list-disc pl-4'>
-                <li>Ensure quorum > 80% on active proposals.</li>
+                <li>Ensure quorum &gt; 80% on active proposals.</li>
                 <li>Pair validators with community observers for emergency actions.</li>
                 <li>Audit treasury disbursements weekly during high activity.</li>
               </ul>

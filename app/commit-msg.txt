@@ -1,0 +1,6 @@
+fix: Resolve TypeScript errors in production code
+
+- Fix Lightning icon import (use Zap from lucide-react)
+- Fix FilterPanel import path
+- Fix UserRole enum references (CREATOR instead of DEVELOPER)
+

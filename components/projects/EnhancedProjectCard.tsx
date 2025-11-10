@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import clsx from 'clsx';
-import { ArrowRight, Heart, Zap, MapPin, Leaf } from 'lucide-react';
+import { ArrowRight, Heart, Lightning, MapPin, Leaf } from 'lucide-react';
 
 type CardLayout = 'grid' | 'list';
 
@@ -108,7 +108,7 @@ export default function EnhancedProjectCard({
       <div className='relative overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-sky-50 p-6'>
         <div className='flex items-start justify-between'>
           <span className='inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-700 shadow-sm ring-1 ring-emerald-100'>
-                <Zap className='h-3.5 w-3.5 text-emerald-500' aria-hidden='true' />
+            <Lightning className='h-3.5 w-3.5 text-emerald-500' aria-hidden='true' />
             {project.category}
           </span>
           {showBookmark && (
@@ -239,4 +239,3 @@ export default function EnhancedProjectCard({
     </Link>
   );
 }
-
