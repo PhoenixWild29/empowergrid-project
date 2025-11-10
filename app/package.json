@@ -46,7 +46,11 @@
     "analyze": "ANALYZE=true npm run build",
     "performance:monitor": "npm run build && npm run analyze",
     "performance:test": "node ../../scripts/performance-test.js",
-    "performance:full": "npm run performance:test && npm run analyze"
+    "performance:full": "npm run performance:test && npm run analyze",
+    "postinstall": "patch-package"
+  },
+  "overrides": {
+    "bigint-buffer": "1.1.5"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.28.0",
@@ -118,7 +122,9 @@
     "msw": "^2.11.3",
     "node-cache": "^5.1.2",
     "node-mocks-http": "^1.17.2",
+    "patch-package": "^8.0.1",
     "postcss": "^8.0.0",
+    "postinstall-postinstall": "^2.1.0",
     "prettier": "^3.6.2",
     "redis": "^4.6.7",
     "snyk": "^1.1294.0",
