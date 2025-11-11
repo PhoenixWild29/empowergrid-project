@@ -28,6 +28,22 @@ jobs:
     - name: Install dependencies
       working-directory: ./app
       run: npm ci --legacy-peer-deps
+      continue-on-error: false
+    
+    - name: Verify security patch applied
+      working-directory: ./app
+      run: |
+        if [ -f "node_modules/bigint-buffer/src/index.ts" ]; then
+          if grep -q "Security fix for CVE-2025-3194" "node_modules/bigint-buffer/src/index.ts"; then
+            echo "✅ Security patch applied successfully"
+          else
+            echo "❌ Security patch not found in bigint-buffer"
+            exit 1
+          fi
+        else
+          echo "❌ bigint-buffer not found"
+          exit 1
+        fi
     
     - name: Generate Prisma Client
       working-directory: ./app
