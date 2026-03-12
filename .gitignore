@@ -1,0 +1,9 @@
+node_modules/
+target/
+*.log
+.env
+.DS_Store
+lib/
+dist/
+coverage/
+.cache

@@ -1,0 +1,14 @@
+{
+  &quot;compilerOptions&quot;: {
+    &quot;target&quot;: &quot;es2018&quot;,
+    &quot;module&quot;: &quot;commonjs&quot;,
+    &quot;strict&quot;: true,
+    &quot;esModuleInterop&quot;: true,
+    &quot;skipLibCheck&quot;: true,
+    &quot;forceConsistentCasingInFileNames&quot;: true,
+    &quot;outDir&quot;: &quot;./dist&quot;,
+    &quot;rootDir&quot;: &quot;./tests&quot;
+  },
+  &quot;include&quot;: [&quot;tests/**/*.ts&quot;, &quot;target/types/**/*.ts&quot;],
+  &quot;exclude&quot;: [&quot;node_modules&quot;, &quot;target&quot;]
+}

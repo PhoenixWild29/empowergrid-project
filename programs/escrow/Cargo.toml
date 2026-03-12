@@ -1,0 +1,19 @@
+[package]
+name = &quot;escrow&quot;
+version = &quot;0.1.0&quot;
+description = &quot;EmpowerGrid Escrow Program&quot;
+edition = &quot;2021&quot;
+
+[lib]
+crate-type = [&quot;cdylib&quot;, &quot;lib&quot;]
+name = &quot;escrow&quot;
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = [&quot;no-entrypoint&quot;]
+default = []
+
+[dependencies]
+anchor-lang = &quot;0.30.1&quot;
