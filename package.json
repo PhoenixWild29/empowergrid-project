@@ -1,0 +1,13 @@
+{
+  &quot;name&quot;: &quot;empowergrid&quot;,
+  &quot;private&quot;: true,
+  &quot;scripts&quot;: {
+    &quot;build&quot;: &quot;anchor build&quot;,
+    &quot;test&quot;: &quot;anchor test&quot;
+  },
+  &quot;devDependencies&quot;: {
+    &quot;@coral-xyz/anchor&quot;: &quot;^0.30.1&quot;,
+    &quot;ts-mocha&quot;: &quot;^10.0.0&quot;,
+    &quot;typescript&quot;: &quot;^5.7.4&quot;
+  }
+}

@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  solana-test-validator:
+    image: solanalabs/solana:v1.18.22
+    command: solana-test-validator --rpc-port 8899 --ws-port 8900
+    ports:
+      - '8899:8899'
+      - '8900:8900'
+    healthcheck:
+      test: ['CMD', 'solana', 'ping', 'localhost']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  api:
+    build: .
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./app:/app
+    depends_on:
+      solana-test-validator:
+        condition: service_healthy
+    environment:
+      - SOLANA_RPC_URL=http://solana-test-validator:8899
