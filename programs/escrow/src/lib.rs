@@ -97,7 +97,7 @@ pub mod escrow {
         let cpi_program = ctx.accounts.system_program.to_account_info();
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts).with_signer(&[&ctx.accounts.escrow_seeds()]);
         transfer(cpi_ctx, amount)?;
-        escrow.total_funded += amount;
+        escrow.total_funded = escrow.total_funded.checked_add(amount).ok_or(ErrorCode::Overflow)?;
         escrow.status = Status::Funded;
         Ok(())
     }
@@ -203,7 +203,7 @@ pub mod escrow {
             escrow: ctx.accounts.escrow.key(),
             milestone_idx,
             rejector: approver,
-            reason,
+            reason: reason.chars().take(128).collect(),
         });
 
         Ok(())
@@ -230,6 +230,26 @@ pub mod escrow {
         Ok(())
     }
 
+    pub fn resolve_dispute(ctx: Context<ResolveDispute>, milestone_idx: u8) -> Result<()> {
+        let escrow = &mut ctx.accounts.escrow;
+        let approval = &mut ctx.accounts.milestone_approval;
+        require!(approval.status == MilestoneStatus::Disputed, ErrorCode::NotDisputed);
+        require!(ctx.accounts.resolver.key() == escrow.funder, ErrorCode::UnauthorizedResolve); // Only funder can resolve by refunding
+        let refund_amount = escrow.total_funded.saturating_sub(escrow.total_released);
+        if refund_amount > 0 {
+            let cpi_accounts = Transfer {
+                from: ctx.accounts.escrow.to_account_info(),
+                to: ctx.accounts.funder.to_account_info(),
+            };
+            let cpi_program = ctx.accounts.system_program.to_account_info();
+            let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts).with_signer(&[&ctx.accounts.escrow_seeds()]);
+            transfer(cpi_ctx, refund_amount)?;
+        }
+        escrow.status = Status::Cancelled;
+        approval.status = MilestoneStatus::Resolved;
+        Ok(())
+    }
+
     /// Release funds for an approved milestone.
     pub fn release_milestone_funds(
         ctx: Context<ReleaseMilestoneFunds>,
@@ -244,13 +264,17 @@ pub mod escrow {
         let amount = escrow.milestones[milestone_idx as usize].amount;
         require!(amount > 0, ErrorCode::NothingToRelease);
 
+        // Check sufficient funds
+        let escrow_lamports = escrow.to_account_info().lamports();
+        require!(escrow_lamports >= amount, ErrorCode::InsufficientFunds);
+
         // Transfer SOL from escrow PDA to recipient via direct lamport manipulation
         let escrow_info = escrow.to_account_info();
         let recipient_info = ctx.accounts.recipient.to_account_info();
         **escrow_info.try_borrow_mut_lamports()? -= amount;
         **recipient_info.try_borrow_mut_lamports()? += amount;
 
-        escrow.total_released += amount;
+        escrow.total_released = escrow.total_released.checked_add(amount).ok_or(ErrorCode::Overflow)?;
 
         emit!(MilestoneFundsReleased {
             escrow: escrow.key(),
@@ -267,7 +291,7 @@ pub mod escrow {
         require!(escrow.status == Status::Active || escrow.status == Status::Completed, ErrorCode::InvalidStatus);
         let mut to_release = 0u64;
         for i in 0..escrow.current_milestone as usize {
-            to_release += escrow.milestones[i].amount;
+            to_release = to_release.checked_add(escrow.milestones[i].amount).ok_or(ErrorCode::Overflow)?;
         }
         require!(to_release > escrow.total_released, ErrorCode::NothingToRelease);
         let remaining = to_release.saturating_sub(escrow.total_released);
@@ -278,7 +302,7 @@ pub mod escrow {
         let cpi_program = ctx.accounts.system_program.to_account_info();
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts).with_signer(&[&ctx.accounts.escrow_seeds()]);
         transfer(cpi_ctx, remaining)?;
-        escrow.total_released += remaining;
+        escrow.total_released = escrow.total_released.checked_add(remaining).ok_or(ErrorCode::Overflow)?;
         Ok(())
     }
 
@@ -468,6 +492,7 @@ pub struct DisputeMilestone<'info> {
     #[account(
         seeds = [b"escrow", escrow.funder.as_ref(), escrow.recipient.as_ref()],
         bump = escrow.bump,
+        constraint = disputer.key() == escrow.funder || disputer.key() == escrow.recipient @ ErrorCode::UnauthorizedDispute,
     )]
     pub escrow: Account<'info, Escrow>,
     #[account(
@@ -478,6 +503,26 @@ pub struct DisputeMilestone<'info> {
     pub milestone_approval: Account<'info, MilestoneApproval>,
     /// Funder or recipient can dispute
     pub disputer: Signer<'info>,
+}
+
+#[derive(Accounts)]
+#[instruction(milestone_idx: u8)]
+pub struct ResolveDispute<'info> {
+    #[account(
+        mut,
+        seeds = [b"escrow", funder.key().as_ref(), escrow.recipient.as_ref()],
+        bump = escrow.bump,
+    )]
+    pub escrow: Account<'info, Escrow>,
+    #[account(
+        mut,
+        seeds = [b"milestone_approval", escrow.key().as_ref(), &[milestone_idx]],
+        bump = milestone_approval.bump,
+    )]
+    pub milestone_approval: Account<'info, MilestoneApproval>,
+    #[account(mut)]
+    pub funder: Signer<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -494,9 +539,8 @@ pub struct ReleaseMilestoneFunds<'info> {
         bump = milestone_approval.bump,
     )]
     pub milestone_approval: Account<'info, MilestoneApproval>,
-    /// CHECK: validated via escrow seeds
     #[account(mut)]
-    pub recipient: AccountInfo<'info>,
+    pub recipient: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -560,6 +604,7 @@ pub enum MilestoneStatus {
     Approved,
     Rejected,
     Disputed,
+    Resolved,
 }
 
 impl Default for MilestoneStatus {
@@ -623,4 +668,14 @@ pub enum ErrorCode {
     ReasonTooLong,
     #[msg("Can only dispute rejected milestones")]
     CanOnlyDisputeRejected,
+    #[msg("Arithmetic overflow")]
+    Overflow,
+    #[msg("Insufficient funds in escrow")]
+    InsufficientFunds,
+    #[msg("Unauthorized dispute")]
+    UnauthorizedDispute,
+    #[msg("Milestone not disputed")]
+    NotDisputed,
+    #[msg("Unauthorized resolve")]
+    UnauthorizedResolve,
 }
