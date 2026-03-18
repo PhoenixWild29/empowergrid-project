@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from typing import Optional
 import uuid
 import datetime
 
@@ -9,5 +10,5 @@ class Milestone(BaseModel):
     description: str
     amount: float
     status: str = Field(default="pending")  # pending, completed, released
-    proof_url: str | None = Field(default=None)
-    completed_at: datetime.datetime | None = Field(default=None)
+    proof_url: Optional[str] = Field(default=None)
+    completed_at: Optional[datetime.datetime] = Field(default=None)

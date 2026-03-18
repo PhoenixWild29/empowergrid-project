@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from typing import Optional
 import uuid
 
 class Escrow(BaseModel):
@@ -7,4 +8,4 @@ class Escrow(BaseModel):
     funder_wallet: str
     amount: float
     status: str = Field(default="pending")  # pending, funded, released
-    tx_signature: str | None = Field(default=None)  # TODO: real Solana tx sig
+    tx_signature: Optional[str] = Field(default=None)  # TODO: real Solana tx sig
