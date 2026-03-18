@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from jose import JWTError, jwt
-from solana.publickey import PublicKey
+from solders.pubkey import Pubkey
 from nacl.signing import VerifyKey
 from base58 import b58decode
 import os
@@ -40,7 +40,7 @@ def create_access_token(data: dict):
 
 def verify_solana_signature(wallet: str, signature: str, message: str) -> bool:
     try:
-        pubkey = PublicKey(wallet)
+        pubkey = Pubkey.from_string(wallet)
         message_bytes = message.encode()
         signature_bytes = b58decode(signature)
         verify_key = VerifyKey(pubkey.to_bytes())
