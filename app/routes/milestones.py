@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from ..models import Milestone
 from ..storage import projects, milestones
 from .auth import get_current_user
 import datetime
