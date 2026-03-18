@@ -9,6 +9,7 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.modified, 'programs/') || contains(github.event.head_commit.modified, 'Anchor.toml') || contains(github.event.head_commit.modified, 'tests/') || github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
