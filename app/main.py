@@ -39,6 +39,10 @@ app.include_router(milestones.router, prefix="/api")
 app.include_router(escrow.router, prefix="/api")
 app.include_router(investors.router, prefix="/api")
 
+from app.database import engine
+from app.db_models import Base
+Base.metadata.create_all(bind=engine)
+
 @app.get("/")
 async def root():
     return {
