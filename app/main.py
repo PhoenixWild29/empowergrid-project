@@ -39,8 +39,8 @@ app.include_router(milestones.router, prefix="/api")
 app.include_router(escrow.router, prefix="/api")
 app.include_router(investors.router, prefix="/api")
 
-from app.database import engine
-from app.db_models import Base
+from app.database import engine  # noqa: E402
+from app.db_models import Base  # noqa: E402
 Base.metadata.create_all(bind=engine)
 
 @app.get("/")
