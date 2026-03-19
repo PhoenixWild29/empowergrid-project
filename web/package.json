@@ -11,6 +11,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "overrides": {
+    "serialize-javascript": ">=6.0.2"
+  },
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
