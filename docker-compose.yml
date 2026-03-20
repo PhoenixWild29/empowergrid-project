@@ -13,6 +13,22 @@ services:
       timeout: 10s
       retries: 3
 
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: empowergrid
+      POSTGRES_USER: empowergrid
+      POSTGRES_PASSWORD: empowergrid
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U empowergrid']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   api:
     build: .
     ports:
@@ -22,5 +38,11 @@ services:
     depends_on:
       solana-test-validator:
         condition: service_healthy
+      db:
+        condition: service_healthy
     environment:
+      - DATABASE_URL=postgresql://empowergrid:empowergrid@db:5432/empowergrid
       - SOLANA_RPC_URL=http://solana-test-validator:8899
+
+volumes:
+  postgres_data:
